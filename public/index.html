@@ -11,7 +11,8 @@
     ::-webkit-scrollbar-track { background: #1a1a2e; }
     ::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
     
-    .badge { padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+    .badge { padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    .badge:hover { opacity: 0.8; }
     .badge-bull { background: rgba(34,197,94,0.2); color: #22c55e; }
     .badge-bear { background: rgba(239,68,68,0.2); color: #ef4444; }
     .badge-neutral { background: rgba(156,163,175,0.2); color: #9ca3af; }
@@ -51,6 +52,13 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
+        <!-- Section Filter -->
+        <div class="flex items-center gap-2 bg-gray-700 rounded px-3 py-1.5">
+          <span class="text-sm text-gray-400">Section:</span>
+          <select id="sectionFilter" onchange="applyFilters()" class="bg-gray-600 border border-gray-500 rounded px-2 py-0.5 text-sm appearance-none pr-7">
+            <option value="All">All</option>
+          </select>
+        </div>
         <!-- Auto Refresh Controls -->
         <div class="flex items-center gap-2 bg-gray-700 rounded px-3 py-1.5">
           <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -284,8 +292,7 @@
         <button onclick="switchTab('all')" id="tabAll" class="tab px-4 py-2.5 text-sm border-b-2 border-blue-500 text-blue-400">All Symbols</button>
         <button onclick="switchTab('longs')" id="tabLongs" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📈 Longs</button>
         <button onclick="switchTab('shorts')" id="tabShorts" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Shorts</button>
-        <button onclick="switchTab('gainers')" id="tabGainers" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🚀 Gainers</button>
-        <button onclick="switchTab('losers')" id="tabLosers" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Losers</button>
+        <button onclick="switchTab('algo')" id="tabAlgo" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🤖 Algo</button>
         <button onclick="switchTab('watchlist')" id="tabWatchlist" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">⭐ Watchlist</button>
         <button onclick="switchTab('signals')" id="tabSignals" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📜 Signal History</button>
       </div>
@@ -408,16 +415,27 @@
         </div>
       </div>
       
+      <!-- Algo Sub-Tabs Panel -->
+      <div id="algoCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium text-purple-400 mr-2">🤖 Filter:</span>
+          <button onclick="switchAlgoSubTab('all')" id="algoSubAll" class="algo-subtab px-3 py-1.5 text-xs rounded bg-purple-600 text-white">All Algos</button>
+          <button onclick="switchAlgoSubTab('algo1')" id="algoSubAlgo1" class="algo-subtab px-3 py-1.5 text-xs rounded bg-gray-600 text-gray-300 hover:bg-gray-500">Algo 1</button>
+          <button onclick="switchAlgoSubTab('algo2')" id="algoSubAlgo2" class="algo-subtab px-3 py-1.5 text-xs rounded bg-gray-600 text-gray-300 hover:bg-gray-500">Algo 2</button>
+          <button onclick="switchAlgoSubTab('algo3')" id="algoSubAlgo3" class="algo-subtab px-3 py-1.5 text-xs rounded bg-gray-600 text-gray-300 hover:bg-gray-500">Algo 3</button>
+        </div>
+      </div>
+      
       <!-- Table Area -->
       <div class="flex-1 overflow-auto">
         <table class="w-full text-sm">
           <thead class="bg-gray-900 sticky top-0 z-10">
             <tr class="text-left text-xs text-gray-400">
               <th class="px-3 py-2 font-medium">Symbol</th>
+              <th class="px-3 py-2 font-medium">Section</th>
               <th class="px-3 py-2 font-medium">Price</th>
               <th class="px-3 py-2 font-medium">24h %</th>
               <th class="px-3 py-2 font-medium">vs BTC</th>
-              <th class="px-3 py-2 font-medium">Vol Ratio</th>
               <th class="px-3 py-2 font-medium">MSS/BOS</th>
               <th class="px-3 py-2 font-medium">Zone</th>
               <th class="px-3 py-2 font-medium">Caution</th>
@@ -490,6 +508,42 @@
     </div>
   </div>
 
+  <!-- Section Change Modal -->
+  <div id="sectionModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-lg w-full max-w-sm overflow-hidden">
+      <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+        <h2 class="text-lg font-bold">Change Section</h2>
+        <button onclick="closeSectionModal()" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-4">
+        <p class="text-sm text-gray-400 mb-3">Symbol: <span id="sectionModalSymbol" class="text-white font-semibold">BTCUSDT</span></p>
+        <label class="block text-sm text-gray-400 mb-2">Select Section:</label>
+        <select id="sectionModalSelect" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm">
+          <option value="Crypto">Crypto</option>
+          <option value="Stocks">Stocks</option>
+          <option value="Forex">Forex</option>
+          <option value="Futures">Futures</option>
+          <option value="Index">Index</option>
+          <option value="DeFi">DeFi</option>
+          <option value="Memes">Memes</option>
+          <option value="AI">AI</option>
+          <option value="Gaming">Gaming</option>
+          <option value="Layer1">Layer 1</option>
+          <option value="Layer2">Layer 2</option>
+          <option value="Other">Other</option>
+        </select>
+        <div class="mt-3">
+          <label class="block text-sm text-gray-400 mb-2">Or create new section:</label>
+          <input type="text" id="sectionModalCustom" placeholder="Enter custom section name" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm">
+        </div>
+      </div>
+      <div class="p-4 border-t border-gray-700 flex gap-2">
+        <button onclick="resetSectionToAuto()" class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm">Reset to Auto</button>
+        <button onclick="saveSection()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let dashboardData = [];
     let filteredData = [];
@@ -533,7 +587,7 @@
         const res = await fetch(`${API}/api/dashboard`);
         dashboardData = await res.json();
         applyFilters();
-        document.getElementById('symbolCount').textContent = dashboardData.filter(d => d.hasData).length;
+        document.getElementById('symbolCount').textContent = dashboardData.length;
       } catch (e) { console.error('Fetch error:', e); }
     }
 
@@ -563,12 +617,7 @@
       catch (e) { return []; }
     }
 
-    async function loadMovers(tf = '24h') {
-      try { const res = await fetch(`${API}/api/movers?tf=${tf}&limit=20`); return await res.json(); }
-      catch (e) { return { gainers: [], losers: [] }; }
-    }
-
-    // Timeframe Helpers
+        // Timeframe Helpers
     function getTimeframesAtOrAbove(minTF) {
       const idx = TIMEFRAMES.indexOf(minTF);
       return idx === -1 ? TIMEFRAMES : TIMEFRAMES.slice(idx);
@@ -621,8 +670,14 @@
 
     function applyFilters() {
       const f = getFilters();
+      const selectedSection = document.getElementById('sectionFilter').value;
+      
       filteredData = dashboardData.filter(item => {
-        if (!item.hasData && currentTab !== 'watchlist') return false;
+        // Section filter
+        if (selectedSection !== 'All' && item.section !== selectedSection) return false;
+        
+        // Show all symbols that exist (removed hasData check for All Symbols tab)
+        if (currentTab === 'all' && !item.hasData && !item.mssbos && !item.momentum && !item.supplydemand && !item.multialgo) return false;
         if (f.demand && !hasZoneInTimeframes(item.supplydemand?.demandZones, getTimeframesAtOrAbove(f.demandTF))) return false;
         if (f.supply && !hasZoneInTimeframes(item.supplydemand?.supplyZones, getTimeframesAtOrAbove(f.supplyTF))) return false;
         if (f.demandRej && !item.supplydemand?.demandRejection) return false;
@@ -672,9 +727,13 @@
 
     function filterBySetupCriteria(data, direction) {
       const c = getSetupCriteria(direction);
+      const selectedSection = document.getElementById('sectionFilter').value;
       
       return data.filter(item => {
         if (!item.hasData) return false;
+        
+        // Section filter
+        if (selectedSection !== 'All' && item.section !== selectedSection) return false;
         
         // Zone check
         if (c.zoneTF !== 'none') {
@@ -726,6 +785,49 @@
     function applySetupCriteria() {
       renderTable();
     }
+    
+    async function loadAlgoAlerts(subTab) {
+      try {
+        let url = `${API}/api/alerts?limit=100`;
+        if (subTab === 'algo1') url += '&type=ALGO1';
+        else if (subTab === 'algo2') url += '&type=ALGO2';
+        else if (subTab === 'algo3') url += '&type=ALGO3';
+        else url += '&category=ALGO'; // all algos
+        
+        const res = await fetch(url);
+        return await res.json();
+      } catch (e) { 
+        console.error('Algo alerts fetch error:', e);
+        return []; 
+      }
+    }
+    
+    function filterByAlgoSignals(data, subTab) {
+      const selectedSection = document.getElementById('sectionFilter').value;
+      
+      return data.filter(item => {
+        if (!item.multialgo) return false;
+        
+        // Section filter
+        if (selectedSection !== 'All' && item.section !== selectedSection) return false;
+        
+        const a = item.multialgo;
+        const hasAlgo1 = a.algo1Buy || a.algo1Sell;
+        const hasAlgo2 = a.algo2Buy || a.algo2Sell;
+        const hasAlgo3 = a.algo3Buy || a.algo3Sell;
+        
+        if (subTab === 'all') {
+          return hasAlgo1 || hasAlgo2 || hasAlgo3;
+        } else if (subTab === 'algo1') {
+          return hasAlgo1;
+        } else if (subTab === 'algo2') {
+          return hasAlgo2;
+        } else if (subTab === 'algo3') {
+          return hasAlgo3;
+        }
+        return false;
+      });
+    }
 
     function applyPreset(preset) {
       clearFilters();
@@ -763,8 +865,36 @@
 
       if (currentTab === 'longs') { data = filterBySetupCriteria(dashboardData, 'long'); }
       else if (currentTab === 'shorts') { data = filterBySetupCriteria(dashboardData, 'short'); }
-      else if (currentTab === 'gainers') { const movers = await loadMovers(); data = movers.gainers; }
-      else if (currentTab === 'losers') { const movers = await loadMovers(); data = movers.losers; }
+      else if (currentTab === 'algo') {
+        // Show algo alerts history with timestamps
+        const algoAlerts = await loadAlgoAlerts(algoSubTab);
+        if (algoAlerts.length === 0) {
+          tbody.innerHTML = '';
+          empty.classList.add('hidden');
+          noData.classList.remove('hidden');
+          return;
+        }
+        tbody.innerHTML = algoAlerts.map(a => {
+          let algoType = a.alert_type.replace('_BUY', '').replace('_SELL', '');
+          let direction = a.alert_type.includes('BUY') ? 'BUY' : 'SELL';
+          let dirClass = direction === 'BUY' ? 'badge-bull' : 'badge-bear';
+          return `<tr class="table-row cursor-pointer" onclick="showDetail('${a.symbol}')">
+            <td class="px-3 py-2 font-semibold">${a.symbol}</td>
+            <td class="px-3 py-2"><span class="badge badge-neutral">${algoType}</span></td>
+            <td class="px-3 py-2"><span class="badge ${dirClass}">${direction}</span></td>
+            <td class="px-3 py-2">${a.timeframe || '-'}</td>
+            <td class="px-3 py-2 font-mono">${formatPrice(a.price_at_alert)}</td>
+            <td class="px-3 py-2 text-gray-400">${formatTimeDetailed(a.timestamp)}</td>
+            <td class="px-3 py-2 text-xs text-gray-500">${a.message || ''}</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+          </tr>`;
+        }).join('');
+        empty.classList.add('hidden');
+        noData.classList.add('hidden');
+        return;
+      }
       else if (currentTab === 'watchlist') { data = dashboardData.filter(d => d.inWatchlist); }
       else if (currentTab === 'signals') {
         const signals = await loadSignals();
@@ -779,10 +909,10 @@
       tbody.innerHTML = data.map(item => `
         <tr class="table-row cursor-pointer" onclick="showDetail('${item.symbol}')">
           <td class="px-3 py-2"><span class="font-semibold">${item.symbol}</span>${!item.hasData ? '<span class="text-xs text-gray-500 ml-1">(no data)</span>' : ''}</td>
+          <td class="px-3 py-2"><span class="badge ${getSectionClass(item.section)}" onclick="event.stopPropagation(); openSectionModal('${item.symbol}', '${item.section || 'Other'}')">${item.section || 'Other'}</span></td>
           <td class="px-3 py-2 font-mono">${formatPrice(item.price)}</td>
           <td class="px-3 py-2">${formatChange(item.priceChange24h)}</td>
           <td class="px-3 py-2">${formatChange(item.changeVsBtc24h)}</td>
-          <td class="px-3 py-2">${item.volumeRatio ? `<span class="${item.volumeRatio > 1 ? 'text-green-400' : 'text-gray-400'}">${item.volumeRatio?.toFixed(1)}x</span>` : '-'}</td>
           <td class="px-3 py-2">${renderMssBos(item.mssbos)}</td>
           <td class="px-3 py-2">${renderZone(item.supplydemand)}</td>
           <td class="px-3 py-2">${renderCaution(item.momentum)}</td>
@@ -888,6 +1018,8 @@
     }
 
     // Tabs
+    let algoSubTab = 'all';
+    
     function switchTab(tab) {
       currentTab = tab;
       document.querySelectorAll('.tab').forEach(t => { t.classList.remove('border-blue-500', 'text-blue-400'); t.classList.add('border-transparent', 'text-gray-400'); });
@@ -897,7 +1029,22 @@
       // Show/hide criteria panels
       document.getElementById('longsCriteriaPanel').classList.toggle('hidden', tab !== 'longs');
       document.getElementById('shortsCriteriaPanel').classList.toggle('hidden', tab !== 'shorts');
+      document.getElementById('algoCriteriaPanel').classList.toggle('hidden', tab !== 'algo');
       
+      renderTable();
+    }
+    
+    function switchAlgoSubTab(subTab) {
+      algoSubTab = subTab;
+      document.querySelectorAll('.algo-subtab').forEach(t => { 
+        t.classList.remove('bg-purple-600', 'text-white'); 
+        t.classList.add('bg-gray-600', 'text-gray-300'); 
+      });
+      const active = document.getElementById(`algoSub${subTab.charAt(0).toUpperCase() + subTab.slice(1)}`);
+      if (active) { 
+        active.classList.remove('bg-gray-600', 'text-gray-300'); 
+        active.classList.add('bg-purple-600', 'text-white'); 
+      }
       renderTable();
     }
 
@@ -905,10 +1052,104 @@
     function formatPrice(p) { if (!p) return '-'; if (p < 0.0001) return p.toExponential(3); if (p < 1) return p.toFixed(6); if (p < 100) return p.toFixed(4); return p.toLocaleString(undefined, { maximumFractionDigits: 2 }); }
     function formatChange(c) { if (c === undefined || c === null) return '<span class="text-gray-500">-</span>'; const color = c >= 0 ? 'text-green-400' : 'text-red-400'; return `<span class="${color}">${c >= 0 ? '+' : ''}${c.toFixed(2)}%</span>`; }
     function formatTime(ts) { if (!ts) return '-'; const diff = (Date.now() - ts) / 1000; if (diff < 60) return 'Now'; if (diff < 3600) return `${Math.floor(diff/60)}m`; if (diff < 86400) return `${Math.floor(diff/3600)}h`; return new Date(ts).toLocaleDateString(); }
+    function formatTimeDetailed(ts) { 
+      if (!ts) return '-'; 
+      const d = new Date(ts);
+      const now = new Date();
+      const diff = (now - d) / 1000;
+      
+      // Show time for today, date+time for older
+      const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (d.toDateString() === now.toDateString()) return `Today ${timeStr}`;
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${timeStr}`;
+      
+      return `${d.toLocaleDateString()} ${timeStr}`;
+    }
     function refreshData() { fetchDashboard(); loadAlerts(); }
+    
+    // Section functions
+    function getSectionClass(section) {
+      const colors = {
+        'Crypto': 'bg-orange-500/20 text-orange-400',
+        'Stocks': 'bg-blue-500/20 text-blue-400',
+        'Forex': 'bg-green-500/20 text-green-400',
+        'Futures': 'bg-purple-500/20 text-purple-400',
+        'Index': 'bg-cyan-500/20 text-cyan-400',
+        'DeFi': 'bg-pink-500/20 text-pink-400',
+        'Memes': 'bg-yellow-500/20 text-yellow-400',
+        'AI': 'bg-indigo-500/20 text-indigo-400',
+        'Gaming': 'bg-red-500/20 text-red-400',
+        'Layer1': 'bg-teal-500/20 text-teal-400',
+        'Layer2': 'bg-emerald-500/20 text-emerald-400',
+        'Other': 'bg-gray-500/20 text-gray-400'
+      };
+      return colors[section] || 'bg-gray-500/20 text-gray-400';
+    }
+    
+    let currentSectionSymbol = '';
+    
+    function openSectionModal(symbol, currentSection) {
+      currentSectionSymbol = symbol;
+      document.getElementById('sectionModalSymbol').textContent = symbol;
+      document.getElementById('sectionModalSelect').value = currentSection;
+      document.getElementById('sectionModalCustom').value = '';
+      document.getElementById('sectionModal').classList.remove('hidden');
+    }
+    
+    function closeSectionModal() {
+      document.getElementById('sectionModal').classList.add('hidden');
+    }
+    
+    async function saveSection() {
+      const customSection = document.getElementById('sectionModalCustom').value.trim();
+      const selectedSection = customSection || document.getElementById('sectionModalSelect').value;
+      
+      try {
+        await fetch(`${API}/api/symbol/section`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: currentSectionSymbol, section: selectedSection })
+        });
+        closeSectionModal();
+        loadSections();
+        fetchDashboard();
+      } catch (e) { console.error('Save section error:', e); }
+    }
+    
+    async function resetSectionToAuto() {
+      try {
+        await fetch(`${API}/api/symbol/section/reset`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: currentSectionSymbol })
+        });
+        closeSectionModal();
+        loadSections();
+        fetchDashboard();
+      } catch (e) { console.error('Reset section error:', e); }
+    }
 
     // Init
-    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); loadAlerts(); });
+    document.addEventListener('DOMContentLoaded', () => { 
+      loadSections();
+      fetchDashboard(); 
+      loadAlerts(); 
+    });
+    
+    async function loadSections() {
+      try {
+        const res = await fetch(`${API}/api/sections`);
+        const sections = await res.json();
+        const select = document.getElementById('sectionFilter');
+        select.innerHTML = sections.map(s => `<option value="${s}">${s}</option>`).join('');
+      } catch (e) { console.error('Sections load error:', e); }
+    }
   </script>
 </body>
 </html>
