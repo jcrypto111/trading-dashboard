@@ -16,7 +16,6 @@
     .badge-bear { background: rgba(239,68,68,0.2); color: #ef4444; }
     .badge-neutral { background: rgba(156,163,175,0.2); color: #9ca3af; }
     .badge-caution { background: rgba(251,191,36,0.2); color: #fbbf24; }
-    .badge-high { background: rgba(239,68,68,0.3); color: #f87171; }
     
     .tf-cell { 
       width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
@@ -35,9 +34,8 @@
     .pulse { animation: pulse 2s infinite; }
     
     .table-row:hover { background: rgba(255,255,255,0.03); }
-    
-    /* Custom checkbox */
     .custom-check { accent-color: #3b82f6; }
+    select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
@@ -53,12 +51,23 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <button onclick="openAlertSettings()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">
-          ⚙️ Alert Settings
-        </button>
-        <button onclick="refreshData()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm">
-          🔄 Refresh
-        </button>
+        <!-- Auto Refresh Controls -->
+        <div class="flex items-center gap-2 bg-gray-700 rounded px-3 py-1.5">
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" id="autoRefreshToggle" class="custom-check" onchange="toggleAutoRefresh()">
+            <span>Auto Refresh</span>
+          </label>
+          <select id="refreshInterval" onchange="updateRefreshInterval()" class="bg-gray-600 border border-gray-500 rounded px-2 py-0.5 text-sm appearance-none pr-7">
+            <option value="0">Off</option>
+            <option value="15">15s</option>
+            <option value="30" selected>30s</option>
+            <option value="60">1m</option>
+            <option value="120">2m</option>
+            <option value="300">5m</option>
+          </select>
+        </div>
+        <button onclick="openAlertSettings()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">⚙️ Alert Settings</button>
+        <button onclick="refreshData()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm">🔄 Refresh</button>
       </div>
     </div>
   </header>
@@ -76,31 +85,49 @@
         <div>
           <p class="text-xs text-gray-400 mb-2">Quick Presets</p>
           <div class="grid grid-cols-2 gap-2">
-            <button onclick="applyPreset('long')" class="px-2 py-1.5 bg-green-600/20 border border-green-600/40 rounded text-green-400 text-xs hover:bg-green-600/30">
-              🟢 Long Setup
-            </button>
-            <button onclick="applyPreset('short')" class="px-2 py-1.5 bg-red-600/20 border border-red-600/40 rounded text-red-400 text-xs hover:bg-red-600/30">
-              🔴 Short Setup
-            </button>
-            <button onclick="applyPreset('confluence')" class="px-2 py-1.5 bg-blue-600/20 border border-blue-600/40 rounded text-blue-400 text-xs hover:bg-blue-600/30">
-              ⭐ High Confluence
-            </button>
-            <button onclick="clearFilters()" class="px-2 py-1.5 bg-gray-600/20 border border-gray-600/40 rounded text-gray-400 text-xs hover:bg-gray-600/30">
-              ✖ Clear
-            </button>
+            <button onclick="applyPreset('long')" class="px-2 py-1.5 bg-green-600/20 border border-green-600/40 rounded text-green-400 text-xs hover:bg-green-600/30">🟢 Long Setup</button>
+            <button onclick="applyPreset('short')" class="px-2 py-1.5 bg-red-600/20 border border-red-600/40 rounded text-red-400 text-xs hover:bg-red-600/30">🔴 Short Setup</button>
+            <button onclick="applyPreset('confluence')" class="px-2 py-1.5 bg-blue-600/20 border border-blue-600/40 rounded text-blue-400 text-xs hover:bg-blue-600/30">⭐ High Confluence</button>
+            <button onclick="clearFilters()" class="px-2 py-1.5 bg-gray-600/20 border border-gray-600/40 rounded text-gray-400 text-xs hover:bg-gray-600/30">✖ Clear</button>
           </div>
         </div>
 
-        <!-- Zone Filters -->
+        <!-- Zone Filters with TF Selection -->
         <div>
           <p class="text-xs text-gray-400 mb-2">Supply/Demand Zones</p>
-          <div class="space-y-1.5">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fDemand4H" class="custom-check"> In Demand (4H+)
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fSupply4H" class="custom-check"> In Supply (4H+)
-            </label>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fDemand" class="custom-check">
+              <span class="text-sm flex-1">In Demand</span>
+              <select id="fDemandTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+                <option value="1m">1m+</option>
+                <option value="3m">3m+</option>
+                <option value="5m">5m+</option>
+                <option value="15m">15m+</option>
+                <option value="30m">30m+</option>
+                <option value="1h">1H+</option>
+                <option value="4h" selected>4H+</option>
+                <option value="12h">12H+</option>
+                <option value="1d">1D+</option>
+                <option value="1w">1W</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fSupply" class="custom-check">
+              <span class="text-sm flex-1">In Supply</span>
+              <select id="fSupplyTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+                <option value="1m">1m+</option>
+                <option value="3m">3m+</option>
+                <option value="5m">5m+</option>
+                <option value="15m">15m+</option>
+                <option value="30m">30m+</option>
+                <option value="1h">1H+</option>
+                <option value="4h" selected>4H+</option>
+                <option value="12h">12H+</option>
+                <option value="1d">1D+</option>
+                <option value="1w">1W</option>
+              </select>
+            </div>
             <label class="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" id="fDemandRej" class="custom-check"> Demand Rejection
             </label>
@@ -110,38 +137,71 @@
           </div>
         </div>
 
-        <!-- MSS/BOS Filters -->
+        <!-- MSS/BOS Filters with TF Selection -->
         <div>
           <p class="text-xs text-gray-400 mb-2">MSS/BOS Trend</p>
-          <div class="space-y-1.5">
+          <div class="space-y-2">
             <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fBullBias" class="custom-check"> Bullish Bias
+              <input type="checkbox" id="fBullBias" class="custom-check"> Bullish Bias (Overall)
             </label>
             <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fBearBias" class="custom-check"> Bearish Bias
+              <input type="checkbox" id="fBearBias" class="custom-check"> Bearish Bias (Overall)
             </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fBull12H" class="custom-check"> Bullish 12H
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fBear12H" class="custom-check"> Bearish 12H
-            </label>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fBullTF" class="custom-check">
+              <span class="text-sm flex-1">Bullish on</span>
+              <select id="fBullTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+                <option value="1m">1m</option>
+                <option value="3m">3m</option>
+                <option value="5m">5m</option>
+                <option value="15m">15m</option>
+                <option value="30m">30m</option>
+                <option value="1h">1H</option>
+                <option value="4h">4H</option>
+                <option value="12h" selected>12H</option>
+                <option value="1d">1D</option>
+                <option value="1w">1W</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fBearTF" class="custom-check">
+              <span class="text-sm flex-1">Bearish on</span>
+              <select id="fBearTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+                <option value="1m">1m</option>
+                <option value="3m">3m</option>
+                <option value="5m">5m</option>
+                <option value="15m">15m</option>
+                <option value="30m">30m</option>
+                <option value="1h">1H</option>
+                <option value="4h">4H</option>
+                <option value="12h" selected>12H</option>
+                <option value="1d">1D</option>
+                <option value="1w">1W</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Momentum Filters -->
+        <!-- Momentum Filters with TF Selection -->
         <div>
           <p class="text-xs text-gray-400 mb-2">Momentum & Caution</p>
-          <div class="space-y-1.5">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fHasCaution" class="custom-check"> Has Caution (4H-)
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fDistribution" class="custom-check"> Distribution
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fAccumulation" class="custom-check"> Accumulation
-            </label>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fHasCaution" class="custom-check">
+              <span class="text-sm flex-1">Has Caution</span>
+              <select id="fCautionTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+                <option value="1m">1m-</option>
+                <option value="3m">3m-</option>
+                <option value="5m">5m-</option>
+                <option value="15m">15m-</option>
+                <option value="30m">30m-</option>
+                <option value="1h">1H-</option>
+                <option value="4h" selected>4H-</option>
+                <option value="12h">12H-</option>
+                <option value="1d">1D-</option>
+                <option value="1w">1W-</option>
+              </select>
+            </div>
             <div class="flex items-center gap-2 mt-1">
               <span class="text-xs text-gray-400">Min Caution:</span>
               <input type="number" id="fMinCaution" min="0" max="10" value="0" class="w-14 px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-xs">
@@ -149,28 +209,49 @@
           </div>
         </div>
 
-        <!-- Algo Filters -->
+        <!-- Multi-Algo Filters (Updated) -->
         <div>
           <p class="text-xs text-gray-400 mb-2">Multi-Algo Signals</p>
           <div class="space-y-1.5">
             <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fDotsGreen" class="custom-check"> Green Dots (OB/OS)
+              <input type="checkbox" id="fOverbought" class="custom-check"> 15M + 1H Overbought
             </label>
             <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fDotsRed" class="custom-check"> Red Dots (OB/OS)
+              <input type="checkbox" id="fOversold" class="custom-check"> 15M + 1H Oversold
             </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fSquaresGreen" class="custom-check"> Green Squares
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fSquaresRed" class="custom-check"> Red Squares
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fAlgo1Buy" class="custom-check"> Algo 1 Buy
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fAlgo1Sell" class="custom-check"> Algo 1 Sell
-            </label>
+            <div class="border-t border-gray-700 my-2 pt-2">
+              <p class="text-xs text-gray-500 mb-1.5">Algo 1</p>
+              <div class="flex gap-4 ml-2">
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo1Buy" class="custom-check"> <span class="text-green-400">Buy</span>
+                </label>
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo1Sell" class="custom-check"> <span class="text-red-400">Sell</span>
+                </label>
+              </div>
+            </div>
+            <div class="border-t border-gray-700 my-2 pt-2">
+              <p class="text-xs text-gray-500 mb-1.5">Algo 2</p>
+              <div class="flex gap-4 ml-2">
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo2Buy" class="custom-check"> <span class="text-green-400">Buy</span>
+                </label>
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo2Sell" class="custom-check"> <span class="text-red-400">Sell</span>
+                </label>
+              </div>
+            </div>
+            <div class="border-t border-gray-700 my-2 pt-2">
+              <p class="text-xs text-gray-500 mb-1.5">Algo 3</p>
+              <div class="flex gap-4 ml-2">
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo3Buy" class="custom-check"> <span class="text-green-400">Buy</span>
+                </label>
+                <label class="flex items-center gap-1 text-sm cursor-pointer">
+                  <input type="checkbox" id="fAlgo3Sell" class="custom-check"> <span class="text-red-400">Sell</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -192,15 +273,12 @@
 
       </div>
       <div class="p-3 border-t border-gray-700">
-        <button onclick="applyFilters()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium">
-          Apply Filters
-        </button>
+        <button onclick="applyFilters()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium">Apply Filters</button>
       </div>
     </aside>
     
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
-      
       <!-- Tabs -->
       <div class="bg-gray-800 border-b border-gray-700 px-4 flex gap-1">
         <button onclick="switchTab('all')" id="tabAll" class="tab px-4 py-2.5 text-sm border-b-2 border-blue-500 text-blue-400">All Symbols</button>
@@ -210,6 +288,124 @@
         <button onclick="switchTab('losers')" id="tabLosers" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Losers</button>
         <button onclick="switchTab('watchlist')" id="tabWatchlist" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">⭐ Watchlist</button>
         <button onclick="switchTab('signals')" id="tabSignals" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📜 Signal History</button>
+      </div>
+      
+      <!-- Longs Criteria Panel -->
+      <div id="longsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-6 flex-wrap">
+          <span class="text-sm font-medium text-green-400">📈 Long Setup Criteria:</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Zone:</span>
+            <select id="longZoneTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none">None Required</option>
+              <option value="1m">Demand 1m+</option>
+              <option value="15m">Demand 15m+</option>
+              <option value="1h">Demand 1H+</option>
+              <option value="4h" selected>Demand 4H+</option>
+              <option value="12h">Demand 12H+</option>
+              <option value="1d">Demand 1D+</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">MSS/BOS:</span>
+            <select id="longMssBos" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none">None Required</option>
+              <option value="bias" selected>Bullish Bias</option>
+              <option value="1m">Bullish 1m</option>
+              <option value="15m">Bullish 15m</option>
+              <option value="1h">Bullish 1H</option>
+              <option value="4h">Bullish 4H</option>
+              <option value="12h">Bullish 12H</option>
+              <option value="1d">Bullish 1D</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">OB/OS:</span>
+            <select id="longObOs" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="oversold">Oversold (Buy Signal)</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Caution:</span>
+            <select id="longCaution" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="1">Min 1 TF</option>
+              <option value="2">Min 2 TF</option>
+              <option value="3">Min 3 TF</option>
+              <option value="4">Min 4 TF</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Algo:</span>
+            <select id="longAlgo" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="algo1">Algo 1 Buy</option>
+              <option value="algo2">Algo 2 Buy</option>
+              <option value="algo3">Algo 3 Buy</option>
+              <option value="any">Any Algo Buy</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Shorts Criteria Panel -->
+      <div id="shortsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-6 flex-wrap">
+          <span class="text-sm font-medium text-red-400">📉 Short Setup Criteria:</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Zone:</span>
+            <select id="shortZoneTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none">None Required</option>
+              <option value="1m">Supply 1m+</option>
+              <option value="15m">Supply 15m+</option>
+              <option value="1h">Supply 1H+</option>
+              <option value="4h" selected>Supply 4H+</option>
+              <option value="12h">Supply 12H+</option>
+              <option value="1d">Supply 1D+</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">MSS/BOS:</span>
+            <select id="shortMssBos" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none">None Required</option>
+              <option value="bias" selected>Bearish Bias</option>
+              <option value="1m">Bearish 1m</option>
+              <option value="15m">Bearish 15m</option>
+              <option value="1h">Bearish 1H</option>
+              <option value="4h">Bearish 4H</option>
+              <option value="12h">Bearish 12H</option>
+              <option value="1d">Bearish 1D</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">OB/OS:</span>
+            <select id="shortObOs" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="overbought">Overbought (Sell Signal)</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Caution:</span>
+            <select id="shortCaution" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="1">Min 1 TF</option>
+              <option value="2">Min 2 TF</option>
+              <option value="3">Min 3 TF</option>
+              <option value="4">Min 4 TF</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Algo:</span>
+            <select id="shortAlgo" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="none" selected>None Required</option>
+              <option value="algo1">Algo 1 Sell</option>
+              <option value="algo2">Algo 2 Sell</option>
+              <option value="algo3">Algo 3 Sell</option>
+              <option value="any">Any Algo Sell</option>
+            </select>
+          </div>
+        </div>
       </div>
       
       <!-- Table Area -->
@@ -250,15 +446,19 @@
           <option value="">All</option>
           <option value="SETUP">Setups</option>
           <option value="ZONE">Zones</option>
+          <option value="DEMAND_REJECTION">Demand Rejection</option>
+          <option value="SUPPLY_REJECTION">Supply Rejection</option>
+          <option value="OVERBOUGHT">15M + 1H Overbought</option>
+          <option value="OVERSOLD">15M + 1H Oversold</option>
+          <option value="ALGO1">Algo 1</option>
+          <option value="ALGO2">Algo 2</option>
+          <option value="ALGO3">Algo 3</option>
           <option value="MSSBOS">MSS/BOS</option>
           <option value="MOMENTUM">Momentum</option>
-          <option value="ALGO">Algo</option>
           <option value="DIVERGENCE">Divergence</option>
         </select>
       </div>
-      <div id="alertsList" class="flex-1 overflow-y-auto">
-        <!-- Alerts will be inserted here -->
-      </div>
+      <div id="alertsList" class="flex-1 overflow-y-auto"></div>
     </aside>
   </div>
 
@@ -283,43 +483,51 @@
         <h2 class="text-lg font-bold">Alert Settings</h2>
         <button onclick="closeAlertSettings()" class="text-gray-400 hover:text-white">✕</button>
       </div>
-      <div id="alertSettingsContent" class="flex-1 overflow-auto p-4">
-        <!-- Settings will be inserted here -->
-      </div>
+      <div id="alertSettingsContent" class="flex-1 overflow-auto p-4"></div>
       <div class="p-4 border-t border-gray-700">
-        <button onclick="saveAlertSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium">
-          Save Settings
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add to Watchlist Modal -->
-  <div id="watchlistModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-gray-800 rounded-lg w-full max-w-sm p-6">
-      <h2 class="text-lg font-bold mb-4">Add to Watchlist</h2>
-      <input type="text" id="watchlistSymbol" placeholder="Enter symbol (e.g., BTCUSDT)" 
-             class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded mb-4">
-      <div class="flex gap-3">
-        <button onclick="closeWatchlistModal()" class="flex-1 py-2 bg-gray-700 rounded">Cancel</button>
-        <button onclick="addToWatchlist()" class="flex-1 py-2 bg-blue-600 rounded">Add</button>
+        <button onclick="saveAlertSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium">Save Settings</button>
       </div>
     </div>
   </div>
 
   <script>
-    // ═══════════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════════
     let dashboardData = [];
     let filteredData = [];
     let currentTab = 'all';
     let alertSettings = [];
+    let autoRefreshInterval = null;
     const API = window.location.origin;
+    const TIMEFRAMES = ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w'];
 
-    // ═══════════════════════════════════════════════════════════════
-    // DATA FETCHING
-    // ═══════════════════════════════════════════════════════════════
+    // Auto Refresh
+    function toggleAutoRefresh() {
+      const enabled = document.getElementById('autoRefreshToggle').checked;
+      if (enabled) startAutoRefresh();
+      else stopAutoRefresh();
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      const seconds = parseInt(document.getElementById('refreshInterval').value);
+      if (seconds === 0) return;
+      autoRefreshInterval = setInterval(() => { fetchDashboard(); loadAlerts(); }, seconds * 1000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+    }
+
+    function updateRefreshInterval() {
+      const val = document.getElementById('refreshInterval').value;
+      if (val === '0') {
+        document.getElementById('autoRefreshToggle').checked = false;
+        stopAutoRefresh();
+      } else if (document.getElementById('autoRefreshToggle').checked) {
+        startAutoRefresh();
+      }
+    }
+
+    // Data Fetching
     async function fetchDashboard() {
       try {
         const res = await fetch(`${API}/api/dashboard`);
@@ -331,58 +539,80 @@
 
     async function loadAlerts() {
       try {
-        const category = document.getElementById('alertFilter').value;
-        const url = category ? `${API}/api/alerts?category=${category}&limit=50` : `${API}/api/alerts?limit=50`;
+        const filterValue = document.getElementById('alertFilter').value;
+        let url = `${API}/api/alerts?limit=50`;
+        if (filterValue === 'DEMAND_REJECTION' || filterValue === 'SUPPLY_REJECTION') url += `&type=${filterValue}`;
+        else if (filterValue === 'OVERBOUGHT') url += `&type=DOTS_GREEN`;
+        else if (filterValue === 'OVERSOLD') url += `&type=DOTS_RED`;
+        else if (filterValue === 'ALGO1') url += `&type=ALGO1`;
+        else if (filterValue === 'ALGO2') url += `&type=ALGO2`;
+        else if (filterValue === 'ALGO3') url += `&type=ALGO3`;
+        else if (filterValue) url += `&category=${filterValue}`;
         const res = await fetch(url);
-        const alerts = await res.json();
-        renderAlerts(alerts);
+        renderAlerts(await res.json());
       } catch (e) { console.error('Alert fetch error:', e); }
     }
 
     async function loadSetups() {
-      try {
-        const res = await fetch(`${API}/api/setups`);
-        return await res.json();
-      } catch (e) { return { longs: [], shorts: [] }; }
+      try { const res = await fetch(`${API}/api/setups`); return await res.json(); }
+      catch (e) { return { longs: [], shorts: [] }; }
     }
 
     async function loadSignals() {
-      try {
-        const res = await fetch(`${API}/api/signals?limit=100`);
-        return await res.json();
-      } catch (e) { return []; }
+      try { const res = await fetch(`${API}/api/signals?limit=100`); return await res.json(); }
+      catch (e) { return []; }
     }
 
     async function loadMovers(tf = '24h') {
-      try {
-        const res = await fetch(`${API}/api/movers?tf=${tf}&limit=20`);
-        return await res.json();
-      } catch (e) { return { gainers: [], losers: [] }; }
+      try { const res = await fetch(`${API}/api/movers?tf=${tf}&limit=20`); return await res.json(); }
+      catch (e) { return { gainers: [], losers: [] }; }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // FILTERING
-    // ═══════════════════════════════════════════════════════════════
+    // Timeframe Helpers
+    function getTimeframesAtOrAbove(minTF) {
+      const idx = TIMEFRAMES.indexOf(minTF);
+      return idx === -1 ? TIMEFRAMES : TIMEFRAMES.slice(idx);
+    }
+
+    function getTimeframesAtOrBelow(maxTF) {
+      const idx = TIMEFRAMES.indexOf(maxTF);
+      return idx === -1 ? TIMEFRAMES : TIMEFRAMES.slice(0, idx + 1);
+    }
+
+    function hasZoneInTimeframes(zones, timeframes) {
+      return zones && timeframes.some(tf => zones[tf]);
+    }
+
+    function hasCautionInTimeframes(cautions, timeframes) {
+      return cautions && timeframes.some(tf => cautions[tf]);
+    }
+
+    // Filtering
     function getFilters() {
       return {
-        demand4H: document.getElementById('fDemand4H').checked,
-        supply4H: document.getElementById('fSupply4H').checked,
+        demand: document.getElementById('fDemand').checked,
+        demandTF: document.getElementById('fDemandTF').value,
+        supply: document.getElementById('fSupply').checked,
+        supplyTF: document.getElementById('fSupplyTF').value,
         demandRej: document.getElementById('fDemandRej').checked,
         supplyRej: document.getElementById('fSupplyRej').checked,
         bullBias: document.getElementById('fBullBias').checked,
         bearBias: document.getElementById('fBearBias').checked,
-        bull12H: document.getElementById('fBull12H').checked,
-        bear12H: document.getElementById('fBear12H').checked,
+        bullTF: document.getElementById('fBullTF').checked,
+        bullTFSelect: document.getElementById('fBullTFSelect').value,
+        bearTF: document.getElementById('fBearTF').checked,
+        bearTFSelect: document.getElementById('fBearTFSelect').value,
         hasCaution: document.getElementById('fHasCaution').checked,
-        distribution: document.getElementById('fDistribution').checked,
-        accumulation: document.getElementById('fAccumulation').checked,
+        cautionTF: document.getElementById('fCautionTF').value,
         minCaution: parseInt(document.getElementById('fMinCaution').value) || 0,
-        dotsGreen: document.getElementById('fDotsGreen').checked,
-        dotsRed: document.getElementById('fDotsRed').checked,
-        squaresGreen: document.getElementById('fSquaresGreen').checked,
-        squaresRed: document.getElementById('fSquaresRed').checked,
+        overbought: document.getElementById('fOverbought').checked,
+        oversold: document.getElementById('fOversold').checked,
         algo1Buy: document.getElementById('fAlgo1Buy').checked,
         algo1Sell: document.getElementById('fAlgo1Sell').checked,
+        algo2Buy: document.getElementById('fAlgo2Buy').checked,
+        algo2Sell: document.getElementById('fAlgo2Sell').checked,
+        algo3Buy: document.getElementById('fAlgo3Buy').checked,
+        algo3Sell: document.getElementById('fAlgo3Sell').checked,
         volAboveAvg: document.getElementById('fVolAboveAvg').checked,
         outperformBTC: document.getElementById('fOutperformBTC').checked,
         hasDivergence: document.getElementById('fHasDivergence').checked
@@ -391,151 +621,164 @@
 
     function applyFilters() {
       const f = getFilters();
-      
       filteredData = dashboardData.filter(item => {
         if (!item.hasData && currentTab !== 'watchlist') return false;
-        
-        // Zone filters
-        if (f.demand4H) {
-          const dz = item.supplydemand?.demandZones;
-          if (!dz || !(dz['4h'] || dz['12h'] || dz['1d'] || dz['1w'])) return false;
-        }
-        if (f.supply4H) {
-          const sz = item.supplydemand?.supplyZones;
-          if (!sz || !(sz['4h'] || sz['12h'] || sz['1d'] || sz['1w'])) return false;
-        }
+        if (f.demand && !hasZoneInTimeframes(item.supplydemand?.demandZones, getTimeframesAtOrAbove(f.demandTF))) return false;
+        if (f.supply && !hasZoneInTimeframes(item.supplydemand?.supplyZones, getTimeframesAtOrAbove(f.supplyTF))) return false;
         if (f.demandRej && !item.supplydemand?.demandRejection) return false;
         if (f.supplyRej && !item.supplydemand?.supplyRejection) return false;
-        
-        // MSS/BOS filters
         if (f.bullBias && item.mssbos?.bias !== 'BULL') return false;
         if (f.bearBias && item.mssbos?.bias !== 'BEAR') return false;
-        if (f.bull12H && item.mssbos?.timeframes?.['12h']?.direction !== 'BULL') return false;
-        if (f.bear12H && item.mssbos?.timeframes?.['12h']?.direction !== 'BEAR') return false;
-        
-        // Momentum filters
-        if (f.hasCaution) {
-          const c = item.momentum?.cautions;
-          if (!c || !(c['1m'] || c['3m'] || c['5m'] || c['15m'] || c['30m'] || c['1h'] || c['4h'])) return false;
-        }
-        if (f.distribution && !item.momentum?.distribution) return false;
-        if (f.accumulation && !item.momentum?.accumulation) return false;
+        if (f.bullTF && item.mssbos?.timeframes?.[f.bullTFSelect]?.direction !== 'BULL') return false;
+        if (f.bearTF && item.mssbos?.timeframes?.[f.bearTFSelect]?.direction !== 'BEAR') return false;
+        if (f.hasCaution && !hasCautionInTimeframes(item.momentum?.cautions, getTimeframesAtOrBelow(f.cautionTF))) return false;
         if (f.minCaution > 0 && (item.momentum?.cautionCount || 0) < f.minCaution) return false;
-        
-        // Algo filters
-        if (f.dotsGreen && !item.multialgo?.dotsGreen) return false;
-        if (f.dotsRed && !item.multialgo?.dotsRed) return false;
-        if (f.squaresGreen && !item.multialgo?.squaresGreen) return false;
-        if (f.squaresRed && !item.multialgo?.squaresRed) return false;
+        if (f.overbought && !item.multialgo?.dotsGreen) return false;
+        if (f.oversold && !item.multialgo?.dotsRed) return false;
         if (f.algo1Buy && !item.multialgo?.algo1Buy) return false;
         if (f.algo1Sell && !item.multialgo?.algo1Sell) return false;
-        
-        // Volume/RS filters
+        if (f.algo2Buy && !item.multialgo?.algo2Buy) return false;
+        if (f.algo2Sell && !item.multialgo?.algo2Sell) return false;
+        if (f.algo3Buy && !item.multialgo?.algo3Buy) return false;
+        if (f.algo3Sell && !item.multialgo?.algo3Sell) return false;
         if (f.volAboveAvg && !item.volumeAboveAvg) return false;
         if (f.outperformBTC && !item.relativeStrength?.outperformingBtc) return false;
         if (f.hasDivergence && !item.divergence) return false;
+        return true;
+      });
+      renderTable();
+    }
+
+    // Get Longs/Shorts based on custom criteria
+    function getSetupCriteria(direction) {
+      if (direction === 'long') {
+        return {
+          zoneTF: document.getElementById('longZoneTF').value,
+          mssbos: document.getElementById('longMssBos').value,
+          obos: document.getElementById('longObOs').value,
+          caution: document.getElementById('longCaution').value,
+          algo: document.getElementById('longAlgo').value
+        };
+      } else {
+        return {
+          zoneTF: document.getElementById('shortZoneTF').value,
+          mssbos: document.getElementById('shortMssBos').value,
+          obos: document.getElementById('shortObOs').value,
+          caution: document.getElementById('shortCaution').value,
+          algo: document.getElementById('shortAlgo').value
+        };
+      }
+    }
+
+    function filterBySetupCriteria(data, direction) {
+      const c = getSetupCriteria(direction);
+      
+      return data.filter(item => {
+        if (!item.hasData) return false;
+        
+        // Zone check
+        if (c.zoneTF !== 'none') {
+          const zones = direction === 'long' ? item.supplydemand?.demandZones : item.supplydemand?.supplyZones;
+          if (!hasZoneInTimeframes(zones, getTimeframesAtOrAbove(c.zoneTF))) return false;
+        }
+        
+        // MSS/BOS check
+        if (c.mssbos !== 'none') {
+          const targetBias = direction === 'long' ? 'BULL' : 'BEAR';
+          if (c.mssbos === 'bias') {
+            if (item.mssbos?.bias !== targetBias) return false;
+          } else {
+            if (item.mssbos?.timeframes?.[c.mssbos]?.direction !== targetBias) return false;
+          }
+        }
+        
+        // OB/OS check
+        if (c.obos !== 'none') {
+          if (direction === 'long' && c.obos === 'oversold' && !item.multialgo?.dotsRed) return false;
+          if (direction === 'short' && c.obos === 'overbought' && !item.multialgo?.dotsGreen) return false;
+        }
+        
+        // Caution check
+        if (c.caution !== 'none') {
+          const minCaution = parseInt(c.caution);
+          if ((item.momentum?.cautionCount || 0) < minCaution) return false;
+        }
+        
+        // Algo check
+        if (c.algo !== 'none') {
+          if (direction === 'long') {
+            if (c.algo === 'algo1' && !item.multialgo?.algo1Buy) return false;
+            if (c.algo === 'algo2' && !item.multialgo?.algo2Buy) return false;
+            if (c.algo === 'algo3' && !item.multialgo?.algo3Buy) return false;
+            if (c.algo === 'any' && !item.multialgo?.algo1Buy && !item.multialgo?.algo2Buy && !item.multialgo?.algo3Buy) return false;
+          } else {
+            if (c.algo === 'algo1' && !item.multialgo?.algo1Sell) return false;
+            if (c.algo === 'algo2' && !item.multialgo?.algo2Sell) return false;
+            if (c.algo === 'algo3' && !item.multialgo?.algo3Sell) return false;
+            if (c.algo === 'any' && !item.multialgo?.algo1Sell && !item.multialgo?.algo2Sell && !item.multialgo?.algo3Sell) return false;
+          }
+        }
         
         return true;
       });
-      
+    }
+
+    function applySetupCriteria() {
       renderTable();
     }
 
     function applyPreset(preset) {
       clearFilters();
-      switch (preset) {
-        case 'long':
-          document.getElementById('fDemand4H').checked = true;
-          document.getElementById('fBullBias').checked = true;
-          document.getElementById('fHasCaution').checked = true;
-          break;
-        case 'short':
-          document.getElementById('fSupply4H').checked = true;
-          document.getElementById('fBearBias').checked = true;
-          document.getElementById('fHasCaution').checked = true;
-          break;
-        case 'confluence':
-          document.getElementById('fMinCaution').value = 3;
-          break;
+      if (preset === 'long') {
+        document.getElementById('fDemand').checked = true;
+        document.getElementById('fBullBias').checked = true;
+        document.getElementById('fHasCaution').checked = true;
+      } else if (preset === 'short') {
+        document.getElementById('fSupply').checked = true;
+        document.getElementById('fBearBias').checked = true;
+        document.getElementById('fHasCaution').checked = true;
+      } else if (preset === 'confluence') {
+        document.getElementById('fMinCaution').value = 3;
       }
       applyFilters();
     }
 
     function clearFilters() {
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => { if (cb.id !== 'autoRefreshToggle') cb.checked = false; });
       document.getElementById('fMinCaution').value = 0;
+      document.getElementById('fDemandTF').value = '4h';
+      document.getElementById('fSupplyTF').value = '4h';
+      document.getElementById('fBullTFSelect').value = '12h';
+      document.getElementById('fBearTFSelect').value = '12h';
+      document.getElementById('fCautionTF').value = '4h';
       applyFilters();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // RENDERING
-    // ═══════════════════════════════════════════════════════════════
+    // Rendering
     async function renderTable() {
       const tbody = document.getElementById('dataTable');
       const empty = document.getElementById('emptyState');
       const noData = document.getElementById('noDataState');
-      
       let data = filteredData;
-      
-      // Tab-specific data
-      if (currentTab === 'longs') {
-        const setups = await loadSetups();
-        data = setups.longs.map(s => dashboardData.find(d => d.symbol === s.symbol) || s);
-      } else if (currentTab === 'shorts') {
-        const setups = await loadSetups();
-        data = setups.shorts.map(s => dashboardData.find(d => d.symbol === s.symbol) || s);
-      } else if (currentTab === 'gainers') {
-        const movers = await loadMovers();
-        data = movers.gainers;
-      } else if (currentTab === 'losers') {
-        const movers = await loadMovers();
-        data = movers.losers;
-      } else if (currentTab === 'watchlist') {
-        data = dashboardData.filter(d => d.inWatchlist);
-      } else if (currentTab === 'signals') {
+
+      if (currentTab === 'longs') { data = filterBySetupCriteria(dashboardData, 'long'); }
+      else if (currentTab === 'shorts') { data = filterBySetupCriteria(dashboardData, 'short'); }
+      else if (currentTab === 'gainers') { const movers = await loadMovers(); data = movers.gainers; }
+      else if (currentTab === 'losers') { const movers = await loadMovers(); data = movers.losers; }
+      else if (currentTab === 'watchlist') { data = dashboardData.filter(d => d.inWatchlist); }
+      else if (currentTab === 'signals') {
         const signals = await loadSignals();
-        tbody.innerHTML = signals.map(s => `
-          <tr class="table-row">
-            <td class="px-3 py-2 font-semibold">${s.symbol}</td>
-            <td class="px-3 py-2">${s.signal_type}</td>
-            <td class="px-3 py-2"><span class="badge ${s.direction === 'BULL' ? 'badge-bull' : 'badge-bear'}">${s.direction}</span></td>
-            <td class="px-3 py-2">${s.timeframe || '-'}</td>
-            <td class="px-3 py-2 font-mono">${formatPrice(s.price_at_signal)}</td>
-            <td class="px-3 py-2 text-gray-400">${formatTime(s.timestamp)}</td>
-            <td class="px-3 py-2">${s.indicator}</td>
-            <td class="px-3 py-2"></td>
-            <td class="px-3 py-2"></td>
-            <td class="px-3 py-2"></td>
-          </tr>
-        `).join('');
-        empty.classList.add('hidden');
-        noData.classList.add('hidden');
-        return;
+        tbody.innerHTML = signals.map(s => `<tr class="table-row"><td class="px-3 py-2 font-semibold">${s.symbol}</td><td class="px-3 py-2">${s.signal_type}</td><td class="px-3 py-2"><span class="badge ${s.direction === 'BULL' ? 'badge-bull' : 'badge-bear'}">${s.direction}</span></td><td class="px-3 py-2">${s.timeframe || '-'}</td><td class="px-3 py-2 font-mono">${formatPrice(s.price_at_signal)}</td><td class="px-3 py-2 text-gray-400">${formatTime(s.timestamp)}</td><td class="px-3 py-2">${s.indicator}</td><td class="px-3 py-2"></td><td class="px-3 py-2"></td><td class="px-3 py-2"></td></tr>`).join('');
+        empty.classList.add('hidden'); noData.classList.add('hidden'); return;
       }
-      
-      if (dashboardData.length === 0) {
-        tbody.innerHTML = '';
-        empty.classList.remove('hidden');
-        noData.classList.add('hidden');
-        return;
-      }
-      
-      if (data.length === 0) {
-        tbody.innerHTML = '';
-        empty.classList.add('hidden');
-        noData.classList.remove('hidden');
-        return;
-      }
-      
-      empty.classList.add('hidden');
-      noData.classList.add('hidden');
-      
+
+      if (dashboardData.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); noData.classList.add('hidden'); return; }
+      if (data.length === 0) { tbody.innerHTML = ''; empty.classList.add('hidden'); noData.classList.remove('hidden'); return; }
+      empty.classList.add('hidden'); noData.classList.add('hidden');
+
       tbody.innerHTML = data.map(item => `
         <tr class="table-row cursor-pointer" onclick="showDetail('${item.symbol}')">
-          <td class="px-3 py-2">
-            <span class="font-semibold">${item.symbol}</span>
-            ${!item.hasData ? '<span class="text-xs text-gray-500 ml-1">(no data)</span>' : ''}
-          </td>
+          <td class="px-3 py-2"><span class="font-semibold">${item.symbol}</span>${!item.hasData ? '<span class="text-xs text-gray-500 ml-1">(no data)</span>' : ''}</td>
           <td class="px-3 py-2 font-mono">${formatPrice(item.price)}</td>
           <td class="px-3 py-2">${formatChange(item.priceChange24h)}</td>
           <td class="px-3 py-2">${formatChange(item.changeVsBtc24h)}</td>
@@ -558,271 +801,114 @@
     function renderZone(sd) {
       if (!sd) return '<span class="text-gray-500">-</span>';
       const parts = [];
-      const dz = sd.demandZones, sz = sd.supplyZones;
-      const demandTFs = dz ? Object.entries(dz).filter(([k,v]) => v).map(([k]) => k) : [];
-      const supplyTFs = sz ? Object.entries(sz).filter(([k,v]) => v).map(([k]) => k) : [];
+      const demandTFs = sd.demandZones ? Object.entries(sd.demandZones).filter(([k,v]) => v).map(([k]) => k) : [];
+      const supplyTFs = sd.supplyZones ? Object.entries(sd.supplyZones).filter(([k,v]) => v).map(([k]) => k) : [];
       if (demandTFs.length) parts.push(`<span class="badge badge-bull">D:${demandTFs.slice(0,3).join(',')}</span>`);
       if (supplyTFs.length) parts.push(`<span class="badge badge-bear">S:${supplyTFs.slice(0,3).join(',')}</span>`);
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
     function renderCaution(m) {
-      if (!m) return '<span class="text-gray-500">-</span>';
-      if (!m.cautionCount) return '<span class="text-gray-500">-</span>';
+      if (!m || !m.cautionCount) return '<span class="text-gray-500">-</span>';
       return `<span class="badge badge-caution">${m.cautionCount} TF</span>`;
     }
 
     function renderAlgo(a) {
       if (!a) return '<span class="text-gray-500">-</span>';
       const parts = [];
-      if (a.dotsGreen) parts.push('<span class="text-green-400">●</span>');
-      if (a.dotsRed) parts.push('<span class="text-red-400">●</span>');
-      if (a.squaresGreen) parts.push('<span class="text-green-400">■</span>');
-      if (a.squaresRed) parts.push('<span class="text-red-400">■</span>');
+      if (a.dotsGreen) parts.push('<span class="text-green-400" title="15M+1H Overbought">OB</span>');
+      if (a.dotsRed) parts.push('<span class="text-red-400" title="15M+1H Oversold">OS</span>');
       if (a.algo1Buy) parts.push('<span class="text-xs text-green-400">A1↑</span>');
       if (a.algo1Sell) parts.push('<span class="text-xs text-red-400">A1↓</span>');
+      if (a.algo2Buy) parts.push('<span class="text-xs text-green-400">A2↑</span>');
+      if (a.algo2Sell) parts.push('<span class="text-xs text-red-400">A2↓</span>');
+      if (a.algo3Buy) parts.push('<span class="text-xs text-green-400">A3↑</span>');
+      if (a.algo3Sell) parts.push('<span class="text-xs text-red-400">A3↓</span>');
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
     function renderAlerts(alerts) {
       const container = document.getElementById('alertsList');
-      if (!alerts.length) {
-        container.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">No alerts yet</div>';
-        return;
-      }
-      container.innerHTML = alerts.map(a => `
-        <div class="alert-item ${a.importance === 'high' ? 'alert-high' : 'alert-normal'} px-3 py-2 border-b border-gray-700">
-          <div class="flex items-center justify-between mb-1">
-            <span class="font-semibold text-sm">${a.symbol}</span>
-            <span class="text-xs text-gray-500">${formatTime(a.timestamp)}</span>
-          </div>
+      if (!alerts.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">No alerts yet</div>'; return; }
+      container.innerHTML = alerts.map(a => {
+        let displayType = a.alert_type;
+        if (a.alert_type === 'DOTS_GREEN') displayType = '15M+1H OVERBOUGHT';
+        if (a.alert_type === 'DOTS_RED') displayType = '15M+1H OVERSOLD';
+        return `<div class="alert-item ${a.importance === 'high' ? 'alert-high' : 'alert-normal'} px-3 py-2 border-b border-gray-700">
+          <div class="flex items-center justify-between mb-1"><span class="font-semibold text-sm">${a.symbol}</span><span class="text-xs text-gray-500">${formatTime(a.timestamp)}</span></div>
           <p class="text-xs text-gray-300">${a.message}</p>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="badge ${a.direction === 'BULL' ? 'badge-bull' : a.direction === 'BEAR' ? 'badge-bear' : 'badge-neutral'}">${a.alert_type}</span>
-            ${a.timeframe ? `<span class="text-xs text-gray-500">${a.timeframe}</span>` : ''}
-          </div>
-        </div>
-      `).join('');
+          <div class="flex items-center gap-2 mt-1"><span class="badge ${a.direction === 'BULL' ? 'badge-bull' : a.direction === 'BEAR' ? 'badge-bear' : 'badge-neutral'}">${displayType}</span>${a.timeframe ? `<span class="text-xs text-gray-500">${a.timeframe}</span>` : ''}</div>
+        </div>`;
+      }).join('');
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // DETAIL MODAL
-    // ═══════════════════════════════════════════════════════════════
+    // Detail Modal
     function showDetail(symbol) {
       const item = dashboardData.find(d => d.symbol === symbol);
       if (!item) return;
-      
       document.getElementById('detailSymbol').textContent = symbol;
       document.getElementById('detailModal').classList.remove('hidden');
-      
-      // TradingView widget
       const tvContainer = document.getElementById('tvChart');
       tvContainer.innerHTML = '';
-      new TradingView.widget({
-        container_id: 'tvChart',
-        symbol: `BINANCE:${symbol}`,
-        interval: '60',
-        theme: 'dark',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: '#1f2937',
-        enable_publishing: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: true,
-        height: 384,
-        width: '100%'
-      });
-      
-      // Detail content
+      new TradingView.widget({ container_id: 'tvChart', symbol: `BINANCE:${symbol}`, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: 384, width: '100%' });
       document.getElementById('detailContent').innerHTML = `
-        <div class="bg-gray-900 rounded-lg p-4">
-          <h3 class="font-medium mb-3">MSS/BOS Analysis</h3>
-          ${item.mssbos ? `
-            <p class="mb-2">Bias: <span class="badge ${item.mssbos.bias === 'BULL' ? 'badge-bull' : 'badge-bear'}">${item.mssbos.bias}</span></p>
-            <div class="grid grid-cols-10 gap-1">
-              ${['1m','3m','5m','15m','30m','1h','4h','12h','1d','1w'].map(tf => {
-                const data = item.mssbos.timeframes?.[tf];
-                const cls = data?.direction === 'BULL' ? 'tf-bull' : data?.direction === 'BEAR' ? 'tf-bear' : 'tf-none';
-                return `<div class="tf-cell ${cls}">${tf}</div>`;
-              }).join('')}
-            </div>
-          ` : '<p class="text-gray-500">No data</p>'}
-        </div>
-        <div class="bg-gray-900 rounded-lg p-4">
-          <h3 class="font-medium mb-3">Supply/Demand Zones</h3>
-          ${item.supplydemand ? `
-            <p class="text-xs text-gray-400 mb-1">Demand</p>
-            <div class="grid grid-cols-10 gap-1 mb-2">
-              ${['1m','3m','5m','15m','30m','1h','4h','12h','1d','1w'].map(tf => {
-                const active = item.supplydemand.demandZones?.[tf];
-                return `<div class="tf-cell ${active ? 'tf-bull' : 'tf-none'}">${tf}</div>`;
-              }).join('')}
-            </div>
-            <p class="text-xs text-gray-400 mb-1">Supply</p>
-            <div class="grid grid-cols-10 gap-1">
-              ${['1m','3m','5m','15m','30m','1h','4h','12h','1d','1w'].map(tf => {
-                const active = item.supplydemand.supplyZones?.[tf];
-                return `<div class="tf-cell ${active ? 'tf-bear' : 'tf-none'}">${tf}</div>`;
-              }).join('')}
-            </div>
-          ` : '<p class="text-gray-500">No data</p>'}
-        </div>
-        <div class="bg-gray-900 rounded-lg p-4">
-          <h3 class="font-medium mb-3">Momentum & Caution</h3>
-          ${item.momentum ? `
-            <p class="mb-2">Trend: ${item.momentum.trend || 'N/A'} | Status: ${item.momentum.status || 'N/A'}</p>
-            <p class="text-xs text-gray-400 mb-1">Caution (${item.momentum.cautionCount || 0})</p>
-            <div class="grid grid-cols-10 gap-1">
-              ${['1m','3m','5m','15m','30m','1h','4h','12h','1d','1w'].map(tf => {
-                const active = item.momentum.cautions?.[tf];
-                return `<div class="tf-cell ${active ? 'badge-caution' : 'tf-none'}" style="${active ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : ''}">${tf}</div>`;
-              }).join('')}
-            </div>
-          ` : '<p class="text-gray-500">No data</p>'}
-        </div>
-        <div class="bg-gray-900 rounded-lg p-4">
-          <h3 class="font-medium mb-3">Multi-Algo Signals</h3>
-          ${item.multialgo ? `
-            <div class="grid grid-cols-3 gap-2">
-              <div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}">●<br><span class="text-xs">Green</span></div>
-              <div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}">●<br><span class="text-xs">Red</span></div>
-              <div class="text-center p-2 rounded ${item.multialgo.squaresGreen ? 'bg-green-600/20' : 'bg-gray-700'}">■<br><span class="text-xs">Squares</span></div>
-              <div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-xs">A1 Buy</span></div>
-              <div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-purple-600/20' : 'bg-gray-700'}"><span class="text-xs">A2 Buy</span></div>
-              <div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-yellow-600/20' : 'bg-gray-700'}"><span class="text-xs">A3 Buy</span></div>
-            </div>
-          ` : '<p class="text-gray-500">No data</p>'}
-        </div>
-      `;
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">MSS/BOS Analysis</h3>${item.mssbos ? `<p class="mb-2">Bias: <span class="badge ${item.mssbos.bias === 'BULL' ? 'badge-bull' : 'badge-bear'}">${item.mssbos.bias}</span></p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => { const data = item.mssbos.timeframes?.[tf]; const cls = data?.direction === 'BULL' ? 'tf-bull' : data?.direction === 'BEAR' ? 'tf-bear' : 'tf-none'; return `<div class="tf-cell ${cls}">${tf}</div>`; }).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Momentum & Caution</h3>${item.momentum ? `<p class="mb-2">Trend: ${item.momentum.trend || 'N/A'} | Status: ${item.momentum.status || 'N/A'}</p><p class="text-xs text-gray-400 mb-1">Caution (${item.momentum.cautionCount || 0})</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? '↑ BUY' : item.multialgo.algo1Sell ? '↓ SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? '↑ BUY' : item.multialgo.algo2Sell ? '↓ SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? '↑ BUY' : item.multialgo.algo3Sell ? '↓ SELL' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
     }
 
-    function closeDetail() {
-      document.getElementById('detailModal').classList.add('hidden');
-    }
+    function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
 
-    // ═══════════════════════════════════════════════════════════════
-    // ALERT SETTINGS
-    // ═══════════════════════════════════════════════════════════════
+    // Alert Settings
     async function openAlertSettings() {
       try {
         const res = await fetch(`${API}/api/alert-settings`);
         alertSettings = await res.json();
-        
-        document.getElementById('alertSettingsContent').innerHTML = alertSettings.map(s => `
-          <div class="flex items-center justify-between py-2 border-b border-gray-700">
-            <span class="text-sm">${s.alert_type.replace(/_/g, ' ')}</span>
-            <label class="flex items-center gap-2">
-              <input type="checkbox" data-type="${s.alert_type}" ${s.show_in_panel ? 'checked' : ''} class="alert-toggle custom-check">
-              <span class="text-xs text-gray-400">Show</span>
-            </label>
-          </div>
-        `).join('');
-        
+        document.getElementById('alertSettingsContent').innerHTML = alertSettings.map(s => {
+          let displayName = s.alert_type.replace(/_/g, ' ');
+          if (s.alert_type === 'DOTS_GREEN') displayName = '15M + 1H OVERBOUGHT';
+          if (s.alert_type === 'DOTS_RED') displayName = '15M + 1H OVERSOLD';
+          if (s.alert_type === 'SQUARES_GREEN' || s.alert_type === 'SQUARES_RED') return '';
+          return `<div class="flex items-center justify-between py-2 border-b border-gray-700"><span class="text-sm">${displayName}</span><label class="flex items-center gap-2"><input type="checkbox" data-type="${s.alert_type}" ${s.show_in_panel ? 'checked' : ''} class="alert-toggle custom-check"><span class="text-xs text-gray-400">Show</span></label></div>`;
+        }).filter(s => s).join('');
         document.getElementById('alertSettingsModal').classList.remove('hidden');
       } catch (e) { console.error(e); }
     }
 
-    function closeAlertSettings() {
-      document.getElementById('alertSettingsModal').classList.add('hidden');
-    }
+    function closeAlertSettings() { document.getElementById('alertSettingsModal').classList.add('hidden'); }
 
     async function saveAlertSettings() {
       const toggles = document.querySelectorAll('.alert-toggle');
       for (const toggle of toggles) {
-        await fetch(`${API}/api/alert-settings`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            alert_type: toggle.dataset.type,
-            show_in_panel: toggle.checked
-          })
-        });
+        await fetch(`${API}/api/alert-settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alert_type: toggle.dataset.type, show_in_panel: toggle.checked }) });
       }
       closeAlertSettings();
       loadAlerts();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // TABS
-    // ═══════════════════════════════════════════════════════════════
+    // Tabs
     function switchTab(tab) {
       currentTab = tab;
-      document.querySelectorAll('.tab').forEach(t => {
-        t.classList.remove('border-blue-500', 'text-blue-400');
-        t.classList.add('border-transparent', 'text-gray-400');
-      });
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('border-blue-500', 'text-blue-400'); t.classList.add('border-transparent', 'text-gray-400'); });
       const active = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-      if (active) {
-        active.classList.remove('border-transparent', 'text-gray-400');
-        active.classList.add('border-blue-500', 'text-blue-400');
-      }
+      if (active) { active.classList.remove('border-transparent', 'text-gray-400'); active.classList.add('border-blue-500', 'text-blue-400'); }
+      
+      // Show/hide criteria panels
+      document.getElementById('longsCriteriaPanel').classList.toggle('hidden', tab !== 'longs');
+      document.getElementById('shortsCriteriaPanel').classList.toggle('hidden', tab !== 'shorts');
+      
       renderTable();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // WATCHLIST
-    // ═══════════════════════════════════════════════════════════════
-    function openWatchlistModal() {
-      document.getElementById('watchlistModal').classList.remove('hidden');
-    }
+    // Utilities
+    function formatPrice(p) { if (!p) return '-'; if (p < 0.0001) return p.toExponential(3); if (p < 1) return p.toFixed(6); if (p < 100) return p.toFixed(4); return p.toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+    function formatChange(c) { if (c === undefined || c === null) return '<span class="text-gray-500">-</span>'; const color = c >= 0 ? 'text-green-400' : 'text-red-400'; return `<span class="${color}">${c >= 0 ? '+' : ''}${c.toFixed(2)}%</span>`; }
+    function formatTime(ts) { if (!ts) return '-'; const diff = (Date.now() - ts) / 1000; if (diff < 60) return 'Now'; if (diff < 3600) return `${Math.floor(diff/60)}m`; if (diff < 86400) return `${Math.floor(diff/3600)}h`; return new Date(ts).toLocaleDateString(); }
+    function refreshData() { fetchDashboard(); loadAlerts(); }
 
-    function closeWatchlistModal() {
-      document.getElementById('watchlistModal').classList.add('hidden');
-    }
-
-    async function addToWatchlist() {
-      const symbol = document.getElementById('watchlistSymbol').value.trim().toUpperCase();
-      if (!symbol) return;
-      await fetch(`${API}/api/watchlist/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol })
-      });
-      closeWatchlistModal();
-      fetchDashboard();
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // UTILITIES
-    // ═══════════════════════════════════════════════════════════════
-    function formatPrice(p) {
-      if (!p) return '-';
-      if (p < 0.0001) return p.toExponential(3);
-      if (p < 1) return p.toFixed(6);
-      if (p < 100) return p.toFixed(4);
-      return p.toLocaleString(undefined, { maximumFractionDigits: 2 });
-    }
-
-    function formatChange(c) {
-      if (c === undefined || c === null) return '<span class="text-gray-500">-</span>';
-      const color = c >= 0 ? 'text-green-400' : 'text-red-400';
-      return `<span class="${color}">${c >= 0 ? '+' : ''}${c.toFixed(2)}%</span>`;
-    }
-
-    function formatTime(ts) {
-      if (!ts) return '-';
-      const d = new Date(ts);
-      const diff = (Date.now() - ts) / 1000;
-      if (diff < 60) return 'Now';
-      if (diff < 3600) return `${Math.floor(diff/60)}m`;
-      if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-      return d.toLocaleDateString();
-    }
-
-    function refreshData() {
-      fetchDashboard();
-      loadAlerts();
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════════
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchDashboard();
-      loadAlerts();
-      setInterval(fetchDashboard, 30000);
-      setInterval(loadAlerts, 15000);
-    });
+    // Init
+    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); loadAlerts(); });
   </script>
 </body>
 </html>
