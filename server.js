@@ -97,26 +97,48 @@ function updateSymbolCache(symbol, data) {
 
 function updateMssBosCache(symbol, data) {
   const existing = cache.mssbos.get(symbol) || { timeframes: {} };
+  
+  let timeframes = { ...existing.timeframes };
+  
+  // Handle bulk format: timeframes: {1m: "BULL", 3m: "BEAR", ...}
+  if (data.timeframes && typeof data.timeframes === 'object') {
+    for (const [tf, direction] of Object.entries(data.timeframes)) {
+      timeframes[tf.toLowerCase()] = {
+        direction: direction,
+        timestamp: Date.now()
+      };
+    }
+  }
+  
+  // Handle single TF format (legacy)
   const tf = data.timeframe?.toLowerCase() || '1h';
+  if (data.direction || data.bias) {
+    timeframes[tf] = {
+      direction: data.direction || data.bias,
+      signalType: data.signalType || data.signal_type,
+      price: data.price,
+      timestamp: Date.now()
+    };
+  }
   
-  const timeframes = { ...existing.timeframes };
-  timeframes[tf] = {
-    direction: data.direction || data.bias,
-    signalType: data.signalType || data.signal_type,
-    price: data.price,
-    timestamp: Date.now()
-  };
+  // Use provided counts or calculate from timeframes
+  let bullCount = data.bull_count ?? data.bullCount;
+  let bearCount = data.bear_count ?? data.bearCount;
   
-  let bullCount = 0, bearCount = 0;
-  Object.values(timeframes).forEach(t => {
-    if (t.direction === 'BULL') bullCount++;
-    else if (t.direction === 'BEAR') bearCount++;
-  });
+  if (bullCount === undefined || bearCount === undefined) {
+    bullCount = 0;
+    bearCount = 0;
+    Object.values(timeframes).forEach(t => {
+      const dir = t.direction || t;
+      if (dir === 'BULL') bullCount++;
+      else if (dir === 'BEAR') bearCount++;
+    });
+  }
   
   cache.mssbos.set(symbol, {
     symbol,
     timeframes,
-    bias: bullCount > bearCount ? 'BULL' : bearCount > bullCount ? 'BEAR' : 'NEUTRAL',
+    bias: data.bias || (bullCount > bearCount ? 'BULL' : bearCount > bullCount ? 'BEAR' : 'NEUTRAL'),
     bullCount,
     bearCount,
     lastUpdated: Date.now()
@@ -127,23 +149,36 @@ function updateMssBosCache(symbol, data) {
 
 function updateMomentumCache(symbol, data) {
   const existing = cache.momentum.get(symbol) || { cautions: {} };
-  const tf = data.timeframe?.toLowerCase() || '1h';
   
-  const cautions = { ...existing.cautions };
+  let cautions = { ...existing.cautions };
+  
+  // Handle bulk format: caution_tfs: {1m: true, 3m: false, ...}
+  if (data.caution_tfs && typeof data.caution_tfs === 'object') {
+    for (const [tf, val] of Object.entries(data.caution_tfs)) {
+      cautions[tf.toLowerCase()] = val === true || val === 'true';
+    }
+  }
+  
+  // Handle single TF format (legacy)
+  const tf = data.timeframe?.toLowerCase() || '1h';
   if (data.hasCaution !== undefined) {
     cautions[tf] = data.hasCaution;
   }
   
-  const cautionCount = Object.values(cautions).filter(v => v).length;
+  // Use provided count or calculate
+  let cautionCount = data.caution_count ?? data.cautionCount;
+  if (cautionCount === undefined) {
+    cautionCount = Object.values(cautions).filter(v => v).length;
+  }
   
   cache.momentum.set(symbol, {
     symbol,
     trend: data.trend || existing.trend,
-    status: data.status || existing.status,
+    status: data.momentum_status || data.status || existing.status,
     cautions,
     cautionCount,
-    distribution: data.distribution || existing.distribution,
-    accumulation: data.accumulation || existing.accumulation,
+    distribution: data.distribution_detected ?? data.distribution ?? existing.distribution,
+    accumulation: data.accumulation_detected ?? data.accumulation ?? existing.accumulation,
     lastUpdated: Date.now()
   });
   
@@ -152,11 +187,24 @@ function updateMomentumCache(symbol, data) {
 
 function updateSupplyDemandCache(symbol, data) {
   const existing = cache.supplydemand.get(symbol) || { demandZones: {}, supplyZones: {} };
+  
+  let demandZones = { ...existing.demandZones };
+  let supplyZones = { ...existing.supplyZones };
+  
+  // Handle bulk format: demand_zones: {1m: true, 3m: false, ...}
+  if (data.demand_zones && typeof data.demand_zones === 'object') {
+    for (const [tf, val] of Object.entries(data.demand_zones)) {
+      demandZones[tf.toLowerCase()] = val === true || val === 'true';
+    }
+  }
+  if (data.supply_zones && typeof data.supply_zones === 'object') {
+    for (const [tf, val] of Object.entries(data.supply_zones)) {
+      supplyZones[tf.toLowerCase()] = val === true || val === 'true';
+    }
+  }
+  
+  // Handle single TF format (legacy)
   const tf = data.timeframe?.toLowerCase() || '1h';
-  
-  const demandZones = { ...existing.demandZones };
-  const supplyZones = { ...existing.supplyZones };
-  
   if (data.inDemand !== undefined) demandZones[tf] = data.inDemand;
   if (data.inSupply !== undefined) supplyZones[tf] = data.inSupply;
   if (data.demandZone !== undefined) demandZones[tf] = data.demandZone;
@@ -166,8 +214,8 @@ function updateSupplyDemandCache(symbol, data) {
     symbol,
     demandZones,
     supplyZones,
-    demandRejection: data.demandRejection || existing.demandRejection,
-    supplyRejection: data.supplyRejection || existing.supplyRejection,
+    demandRejection: data.demand_rejection ?? data.demandRejection ?? existing.demandRejection,
+    supplyRejection: data.supply_rejection ?? data.supplyRejection ?? existing.supplyRejection,
     lastUpdated: Date.now()
   });
   
