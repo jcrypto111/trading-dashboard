@@ -574,6 +574,73 @@ async function initDatabase() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// UNIFIED WEBHOOK ENDPOINT (Routes based on alert_type in body)
+// ═══════════════════════════════════════════════════════════════════════════
+app.post('/webhook', (req, res) => {
+  try {
+    const data = req.body;
+    const alertType = (data.alert_type || data.alertType || data.type || '').toUpperCase();
+    const symbol = normalizeSymbol(data.symbol || data.ticker);
+    
+    if (!symbol) {
+      console.log('⚠️ Webhook received with no symbol:', JSON.stringify(data).slice(0, 200));
+      return res.status(400).json({ error: 'No symbol provided' });
+    }
+    
+    console.log(`📨 Webhook: ${symbol} - ${alertType} @ ${data.price || 'N/A'}`);
+    
+    // Update symbol cache for all types
+    updateSymbolCache(symbol, data);
+    
+    // Route to appropriate handler based on alert_type
+    if (alertType === 'MSSBOS' || alertType === 'MSS' || alertType === 'BOS') {
+      updateMssBosCache(symbol, data);
+      addAlert({
+        symbol,
+        alert_type: 'MSSBOS',
+        message: `${data.bias || 'NEUTRAL'} bias - ${data.bull_count || 0}B/${data.bear_count || 0}Be`,
+        data: JSON.stringify(data)
+      });
+    } 
+    else if (alertType === 'MOMENTUM' || alertType === 'MOM' || alertType === 'CAUTION') {
+      updateMomentumCache(symbol, data);
+      addAlert({
+        symbol,
+        alert_type: 'MOMENTUM',
+        message: `${data.trend || 'N/A'} - ${data.momentum_status || 'N/A'}`,
+        data: JSON.stringify(data)
+      });
+    }
+    else if (alertType === 'SUPPLYDEMAND' || alertType === 'SD' || alertType === 'SUPPLY' || alertType === 'DEMAND') {
+      updateSupplyDemandCache(symbol, data);
+      addAlert({
+        symbol,
+        alert_type: 'SUPPLYDEMAND',
+        message: `D:${data.demand_rejection ? '✓' : '-'} S:${data.supply_rejection ? '✓' : '-'}`,
+        data: JSON.stringify(data)
+      });
+    }
+    else if (alertType === 'MULTIALGO' || alertType === 'ALGO' || alertType === 'SIGNAL') {
+      updateMultiAlgoCache(symbol, data);
+      addSignal({
+        symbol,
+        signal_type: data.signal_type || data.direction || 'UNKNOWN',
+        data: JSON.stringify(data)
+      });
+    }
+    else {
+      // Unknown type - log it but still accept
+      console.log(`⚠️ Unknown alert_type: ${alertType} for ${symbol}`);
+    }
+    
+    res.json({ success: true, symbol, type: alertType });
+  } catch (error) {
+    console.error('❌ Webhook error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // WEBHOOK ENDPOINTS (Write to cache only - fast!)
 // ═══════════════════════════════════════════════════════════════════════════
 app.post('/webhook/mssbos', (req, res) => {
