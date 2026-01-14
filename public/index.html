@@ -54,14 +54,14 @@
         <!-- Auto Refresh Controls -->
         <div class="flex items-center gap-2 bg-gray-700 rounded px-3 py-1.5">
           <label class="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" id="autoRefreshToggle" class="custom-check" onchange="toggleAutoRefresh()">
+            <input type="checkbox" id="autoRefreshToggle" class="custom-check" onchange="toggleAutoRefresh()" checked>
             <span>Auto Refresh</span>
           </label>
           <select id="refreshInterval" onchange="updateRefreshInterval()" class="bg-gray-600 border border-gray-500 rounded px-2 py-0.5 text-sm appearance-none pr-7">
             <option value="0">Off</option>
             <option value="15">15s</option>
-            <option value="30" selected>30s</option>
-            <option value="60">1m</option>
+            <option value="30">30s</option>
+            <option value="60" selected>1m</option>
             <option value="120">2m</option>
             <option value="300">5m</option>
           </select>
@@ -908,7 +908,7 @@
     function refreshData() { fetchDashboard(); loadAlerts(); }
 
     // Init
-    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); loadAlerts(); });
+    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); loadAlerts(); toggleAutoRefresh(); });
   </script>
 </body>
 </html>
