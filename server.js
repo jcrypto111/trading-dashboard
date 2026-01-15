@@ -225,16 +225,27 @@ function updateSupplyDemandCache(symbol, data) {
 function updateMultiAlgoCache(symbol, data) {
   const existing = cache.multialgo.get(symbol) || {};
   
+  // Helper to convert "1"/"0" strings or 1/0 numbers to boolean
+  const toBool = (val) => val === 1 || val === "1" || val === true;
+  
+  // Get value with fallback to existing
+  const getValue = (newVal, existingVal) => {
+    if (newVal !== undefined && newVal !== null) {
+      return toBool(newVal);
+    }
+    return existingVal || false;
+  };
+  
   cache.multialgo.set(symbol, {
     symbol,
-    dotsGreen: data.dotsGreen ?? data.dots_green ?? existing.dotsGreen,
-    dotsRed: data.dotsRed ?? data.dots_red ?? existing.dotsRed,
-    algo1Buy: data.algo1Buy ?? data.algo1_buy ?? existing.algo1Buy,
-    algo1Sell: data.algo1Sell ?? data.algo1_sell ?? existing.algo1Sell,
-    algo2Buy: data.algo2Buy ?? data.algo2_buy ?? existing.algo2Buy,
-    algo2Sell: data.algo2Sell ?? data.algo2_sell ?? existing.algo2Sell,
-    algo3Buy: data.algo3Buy ?? data.algo3_buy ?? existing.algo3Buy,
-    algo3Sell: data.algo3Sell ?? data.algo3_sell ?? existing.algo3Sell,
+    dotsGreen: getValue(data.dotsGreen ?? data.dots_green, existing.dotsGreen),
+    dotsRed: getValue(data.dotsRed ?? data.dots_red, existing.dotsRed),
+    algo1Buy: getValue(data.algo1Buy ?? data.algo1_buy, existing.algo1Buy),
+    algo1Sell: getValue(data.algo1Sell ?? data.algo1_sell, existing.algo1Sell),
+    algo2Buy: getValue(data.algo2Buy ?? data.algo2_buy, existing.algo2Buy),
+    algo2Sell: getValue(data.algo2Sell ?? data.algo2_sell, existing.algo2Sell),
+    algo3Buy: getValue(data.algo3Buy ?? data.algo3_buy, existing.algo3Buy),
+    algo3Sell: getValue(data.algo3Sell ?? data.algo3_sell, existing.algo3Sell),
     lastUpdated: Date.now()
   });
   
@@ -673,6 +684,57 @@ app.post('/webhook', (req, res) => {
       addSignal({
         symbol,
         signal_type: data.signal_type || data.direction || 'UNKNOWN',
+        data: JSON.stringify(data)
+      });
+    }
+    else if (alertType === 'COMBINED' || alertType === 'MASTER') {
+      // MASTER alert - contains mssbos, supplydemand, momentum, AND multialgo all in one
+      console.log(`📦 Master 4-in-1 alert for ${symbol}`);
+      
+      // Process MSS/BOS data
+      if (data.mssbos) {
+        const mssbosData = {
+          ...data.mssbos,
+          symbol: data.symbol,
+          price: data.price
+        };
+        updateMssBosCache(symbol, mssbosData);
+      }
+      
+      // Process Supply/Demand data
+      if (data.supplydemand) {
+        const sdData = {
+          ...data.supplydemand,
+          symbol: data.symbol,
+          price: data.price
+        };
+        updateSupplyDemandCache(symbol, sdData);
+      }
+      
+      // Process Momentum data
+      if (data.momentum) {
+        const momData = {
+          ...data.momentum,
+          symbol: data.symbol,
+          price: data.price
+        };
+        updateMomentumCache(symbol, momData);
+      }
+      
+      // Process Multi-Algo data
+      if (data.multialgo) {
+        const algoData = {
+          ...data.multialgo,
+          symbol: data.symbol,
+          price: data.price
+        };
+        updateMultiAlgoCache(symbol, algoData);
+      }
+      
+      addAlert({
+        symbol,
+        alert_type: 'MASTER',
+        message: `MSS:${data.mssbos?.bias || '-'} | S/D:${data.supplydemand?.demand_rejection ? 'D✓' : ''}${data.supplydemand?.supply_rejection ? 'S✓' : ''} | Caution:${data.momentum?.caution_count || 0} | Algo:${data.multialgo?.algo1_buy || data.multialgo?.algo2_buy || data.multialgo?.algo3_buy ? 'BUY' : ''}${data.multialgo?.algo1_sell || data.multialgo?.algo2_sell || data.multialgo?.algo3_sell ? 'SELL' : ''}`,
         data: JSON.stringify(data)
       });
     }
