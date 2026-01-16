@@ -23,6 +23,7 @@ const cache = {
   momentum: new Map(),
   supplydemand: new Map(),
   multialgo: new Map(),
+  priceHistory: new Map(), // Track price history for % calculations
   alerts: [],
   signals: [],
   lastSync: 0,
@@ -71,11 +72,102 @@ function detectSectionFromExchange(exchange, symbol) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PRICE HISTORY TRACKING - For calculating 1h, 24h, 1w % changes
+// ═══════════════════════════════════════════════════════════════════════════
+const PRICE_HISTORY_INTERVALS = {
+  '1h': 60 * 60 * 1000,        // 1 hour in ms
+  '24h': 24 * 60 * 60 * 1000,  // 24 hours in ms
+  '1w': 7 * 24 * 60 * 60 * 1000 // 7 days in ms
+};
+
+function recordPriceHistory(symbol, price) {
+  if (!price || price <= 0) return;
+  
+  const now = Date.now();
+  let history = cache.priceHistory.get(symbol) || [];
+  
+  // Add new price point
+  history.push({ price, timestamp: now });
+  
+  // Keep only last 7 days + buffer (8 days)
+  const cutoff = now - (8 * 24 * 60 * 60 * 1000);
+  history = history.filter(p => p.timestamp > cutoff);
+  
+  cache.priceHistory.set(symbol, history);
+}
+
+function calculatePriceChanges(symbol, currentPrice) {
+  if (!currentPrice || currentPrice <= 0) return { change1h: null, change24h: null, change1w: null };
+  
+  const history = cache.priceHistory.get(symbol) || [];
+  if (history.length === 0) return { change1h: null, change24h: null, change1w: null };
+  
+  const now = Date.now();
+  
+  // Find closest price to each time interval
+  const findPriceAt = (targetTime) => {
+    let closest = null;
+    let closestDiff = Infinity;
+    
+    for (const point of history) {
+      const diff = Math.abs(point.timestamp - targetTime);
+      // Allow 10% tolerance (e.g., for 1h, accept prices within 6 minutes)
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = point;
+      }
+    }
+    
+    // Only return if within reasonable tolerance (20% of interval)
+    const interval = now - targetTime;
+    if (closest && closestDiff < interval * 0.2) {
+      return closest.price;
+    }
+    return null;
+  };
+  
+  const price1h = findPriceAt(now - PRICE_HISTORY_INTERVALS['1h']);
+  const price24h = findPriceAt(now - PRICE_HISTORY_INTERVALS['24h']);
+  const price1w = findPriceAt(now - PRICE_HISTORY_INTERVALS['1w']);
+  
+  const calcChange = (oldPrice) => {
+    if (!oldPrice || oldPrice <= 0) return null;
+    return ((currentPrice - oldPrice) / oldPrice) * 100;
+  };
+  
+  return {
+    change1h: calcChange(price1h),
+    change24h: calcChange(price24h),
+    change1w: calcChange(price1w)
+  };
+}
+
+// Clean up old price history periodically (runs every hour)
+setInterval(() => {
+  const cutoff = Date.now() - (8 * 24 * 60 * 60 * 1000);
+  for (const [symbol, history] of cache.priceHistory) {
+    const filtered = history.filter(p => p.timestamp > cutoff);
+    if (filtered.length === 0) {
+      cache.priceHistory.delete(symbol);
+    } else {
+      cache.priceHistory.set(symbol, filtered);
+    }
+  }
+  console.log(`🧹 Price history cleanup: ${cache.priceHistory.size} symbols tracked`);
+}, 60 * 60 * 1000);
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CACHE UPDATE FUNCTIONS (Called by webhooks - updates memory only)
 // ═══════════════════════════════════════════════════════════════════════════
 function updateSymbolCache(symbol, data) {
   const existing = cache.symbols.get(symbol) || {};
   const section = data.section || existing.section || detectSectionFromExchange(data.exchange || '', symbol);
+  const newPrice = data.price || data.close || existing.price || 0;
+  
+  // Record price history for % change calculations
+  if (newPrice > 0) {
+    recordPriceHistory(symbol, newPrice);
+  }
   
   cache.symbols.set(symbol, {
     ...existing,
@@ -83,7 +175,7 @@ function updateSymbolCache(symbol, data) {
     exchange: data.exchange || existing.exchange || '',
     section: existing.sectionManual ? existing.section : section,
     sectionManual: existing.sectionManual || false,
-    price: data.price || data.close || existing.price || 0,
+    price: newPrice,
     open: data.open || existing.open,
     high: data.high || existing.high,
     low: data.low || existing.low,
@@ -1043,14 +1135,17 @@ app.get('/api/dashboard', (req, res) => {
     const result = [];
     
     for (const [symbol, symbolData] of cache.symbols) {
+      // Calculate price changes from history
+      const priceChanges = calculatePriceChanges(symbol, symbolData.price);
+      
       result.push({
         symbol,
         exchange: symbolData.exchange,
         section: symbolData.section || 'Other',
         price: symbolData.price,
-        priceChange24h: symbolData.priceChange24h,
-        changeVsBtc24h: symbolData.changeVsBtc24h,
-        volumeRatio: symbolData.volumeRatio,
+        priceChange1h: priceChanges.change1h,
+        priceChange24h: priceChanges.change24h,
+        priceChange1w: priceChanges.change1w,
         lastUpdated: symbolData.lastUpdated,
         hasData: symbolData.hasData,
         inWatchlist: symbolData.inWatchlist,
