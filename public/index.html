@@ -49,6 +49,13 @@
           <span class="w-2 h-2 rounded-full bg-green-500 pulse"></span>
           <span id="symbolCount">0</span> symbols
         </div>
+        <!-- Section Filter -->
+        <div class="flex items-center gap-1 ml-4">
+          <button onclick="setSection('all')" id="sectionAll" class="section-btn px-3 py-1 text-sm rounded bg-blue-600 text-white">All</button>
+          <button onclick="setSection('crypto')" id="sectionCrypto" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Crypto</button>
+          <button onclick="setSection('stocks')" id="sectionStocks" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Stocks</button>
+          <button onclick="setSection('forex')" id="sectionForex" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Forex</button>
+        </div>
       </div>
       <div class="flex items-center gap-3">
         <!-- Auto Refresh Controls -->
@@ -255,21 +262,6 @@
           </div>
         </div>
 
-        <!-- Volume/RS Filters -->
-        <div>
-          <p class="text-xs text-gray-400 mb-2">Volume & Relative Strength</p>
-          <div class="space-y-1.5">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fVolAboveAvg" class="custom-check"> Volume Above Avg
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fOutperformBTC" class="custom-check"> Outperforming BTC
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="fHasDivergence" class="custom-check"> Has Divergence
-            </label>
-          </div>
-        </div>
 
       </div>
       <div class="p-3 border-t border-gray-700">
@@ -485,13 +477,15 @@
           <thead class="bg-gray-900 sticky top-0 z-10">
             <tr class="text-left text-xs text-gray-400">
               <th class="px-3 py-2 font-medium">Symbol</th>
+              <th class="px-3 py-2 font-medium">Links</th>
               <th class="px-3 py-2 font-medium">Price</th>
+              <th class="px-3 py-2 font-medium">1h %</th>
               <th class="px-3 py-2 font-medium">24h %</th>
-              <th class="px-3 py-2 font-medium">vs BTC</th>
-              <th class="px-3 py-2 font-medium">Vol Ratio</th>
+              <th class="px-3 py-2 font-medium">1w %</th>
               <th class="px-3 py-2 font-medium">MSS/BOS</th>
               <th class="px-3 py-2 font-medium">Zone</th>
               <th class="px-3 py-2 font-medium">Caution</th>
+              <th class="px-3 py-2 font-medium">OB/OS</th>
               <th class="px-3 py-2 font-medium">Algo</th>
               <th class="px-3 py-2 font-medium">Updated</th>
             </tr>
@@ -514,7 +508,10 @@
   <div id="detailModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
       <div class="p-4 border-b border-gray-700 flex items-center justify-between">
-        <h2 id="detailSymbol" class="text-xl font-bold">BTCUSDT</h2>
+        <div class="flex items-center gap-3">
+          <h2 id="detailSymbol" class="text-xl font-bold">BTCUSDT</h2>
+          <span id="detailLinks" class="text-lg"></span>
+        </div>
         <button onclick="closeDetail()" class="text-gray-400 hover:text-white">✕</button>
       </div>
       <div class="flex-1 overflow-auto p-4">
@@ -542,10 +539,26 @@
     let dashboardData = [];
     let filteredData = [];
     let currentTab = 'all';
+    let currentSection = 'all';
     let alertSettings = [];
     let autoRefreshInterval = null;
     const API = window.location.origin;
     const TIMEFRAMES = ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w'];
+
+    // Section Filter (All/Crypto/Stocks/Forex)
+    function setSection(section) {
+      currentSection = section;
+      document.querySelectorAll('.section-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-700', 'text-gray-300');
+      });
+      const active = document.getElementById(`section${section.charAt(0).toUpperCase() + section.slice(1)}`);
+      if (active) {
+        active.classList.remove('bg-gray-700', 'text-gray-300');
+        active.classList.add('bg-blue-600', 'text-white');
+      }
+      applyFilters();
+    }
 
     // Auto Refresh
     function toggleAutoRefresh() {
@@ -634,16 +647,18 @@
         algo2Buy: document.getElementById('fAlgo2Buy').checked,
         algo2Sell: document.getElementById('fAlgo2Sell').checked,
         algo3Buy: document.getElementById('fAlgo3Buy').checked,
-        algo3Sell: document.getElementById('fAlgo3Sell').checked,
-        volAboveAvg: document.getElementById('fVolAboveAvg').checked,
-        outperformBTC: document.getElementById('fOutperformBTC').checked,
-        hasDivergence: document.getElementById('fHasDivergence').checked
+        algo3Sell: document.getElementById('fAlgo3Sell').checked
       };
     }
 
     function applyFilters() {
       const f = getFilters();
       filteredData = dashboardData.filter(item => {
+        // Section filter (All/Crypto/Stocks/Forex)
+        if (currentSection !== 'all') {
+          const itemSection = (item.section || 'Other').toLowerCase();
+          if (itemSection !== currentSection.toLowerCase()) return false;
+        }
         if (!item.hasData && currentTab !== 'watchlist') return false;
         if (f.demand && !hasZoneInTimeframes(item.supplydemand?.demandZones, getTimeframesAtOrAbove(f.demandTF))) return false;
         if (f.supply && !hasZoneInTimeframes(item.supplydemand?.supplyZones, getTimeframesAtOrAbove(f.supplyTF))) return false;
@@ -663,9 +678,6 @@
         if (f.algo2Sell && !item.multialgo?.algo2Sell) return false;
         if (f.algo3Buy && !item.multialgo?.algo3Buy) return false;
         if (f.algo3Sell && !item.multialgo?.algo3Sell) return false;
-        if (f.volAboveAvg && !item.volumeAboveAvg) return false;
-        if (f.outperformBTC && !item.relativeStrength?.outperformingBtc) return false;
-        if (f.hasDivergence && !item.divergence) return false;
         return true;
       });
       renderTable();
@@ -964,17 +976,40 @@
       tbody.innerHTML = data.map(item => `
         <tr class="table-row cursor-pointer" onclick="showDetail('${item.symbol}')">
           <td class="px-3 py-2"><span class="font-semibold">${item.symbol}</span>${!item.hasData ? '<span class="text-xs text-gray-500 ml-1">(no data)</span>' : ''}</td>
+          <td class="px-3 py-2">${renderLinks(item.symbol)}</td>
           <td class="px-3 py-2 font-mono">${formatPrice(item.price)}</td>
+          <td class="px-3 py-2">${formatChange(item.priceChange1h)}</td>
           <td class="px-3 py-2">${formatChange(item.priceChange24h)}</td>
-          <td class="px-3 py-2">${formatChange(item.changeVsBtc24h)}</td>
-          <td class="px-3 py-2">${item.volumeRatio ? `<span class="${item.volumeRatio > 1 ? 'text-green-400' : 'text-gray-400'}">${item.volumeRatio?.toFixed(1)}x</span>` : '-'}</td>
+          <td class="px-3 py-2">${formatChange(item.priceChange1w)}</td>
           <td class="px-3 py-2">${renderMssBos(item.mssbos)}</td>
           <td class="px-3 py-2">${renderZone(item.supplydemand)}</td>
           <td class="px-3 py-2">${renderCaution(item.momentum)}</td>
+          <td class="px-3 py-2">${renderObOs(item.multialgo)}</td>
           <td class="px-3 py-2">${renderAlgo(item.multialgo)}</td>
           <td class="px-3 py-2 text-xs text-gray-500">${formatTime(item.lastUpdated)}</td>
         </tr>
       `).join('');
+    }
+
+    function renderLinks(symbol) {
+      const kcexSymbol = symbol.replace('USDT', '_USDT');
+      return `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Open in TradingView">📺</a> <a href="https://www.kcex.com/futures/exchange/${kcexSymbol}?type=linear_swap" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Trade on KCEX">🔄</a>`;
+    }
+
+    function renderObOs(a) {
+      if (!a) return '<span class="text-gray-500">-</span>';
+      const parts = [];
+      const formatSignalTime = (ts) => {
+        if (!ts) return '';
+        const mins = Math.floor((Date.now() - ts) / 60000);
+        if (mins < 1) return ' (now)';
+        if (mins < 60) return ` (${mins}m)`;
+        const hrs = Math.floor(mins / 60);
+        return ` (${hrs}h)`;
+      };
+      if (a.dotsGreen) parts.push(`<span class="text-green-400" title="15M+1H Overbought${formatSignalTime(a.dotsGreenTime)}">OB${formatSignalTime(a.dotsGreenTime)}</span>`);
+      if (a.dotsRed) parts.push(`<span class="text-red-400" title="15M+1H Oversold${formatSignalTime(a.dotsRedTime)}">OS${formatSignalTime(a.dotsRedTime)}</span>`);
+      return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
     function renderMssBos(m) {
@@ -1019,14 +1054,12 @@
         const hrs = Math.floor(mins / 60);
         return ` (${hrs}h)`;
       };
-      if (a.dotsGreen) parts.push(`<span class="text-green-400" title="15M+1H Overbought${formatSignalTime(a.dotsGreenTime)}">OB${formatSignalTime(a.dotsGreenTime)}</span>`);
-      if (a.dotsRed) parts.push(`<span class="text-red-400" title="15M+1H Oversold${formatSignalTime(a.dotsRedTime)}">OS${formatSignalTime(a.dotsRedTime)}</span>`);
-      if (a.algo1Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 1 Buy${formatSignalTime(a.algo1BuyTime)}">A1↑${formatSignalTime(a.algo1BuyTime)}</span>`);
-      if (a.algo1Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 1 Sell${formatSignalTime(a.algo1SellTime)}">A1↓${formatSignalTime(a.algo1SellTime)}</span>`);
-      if (a.algo2Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 2 Buy${formatSignalTime(a.algo2BuyTime)}">A2↑${formatSignalTime(a.algo2BuyTime)}</span>`);
-      if (a.algo2Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 2 Sell${formatSignalTime(a.algo2SellTime)}">A2↓${formatSignalTime(a.algo2SellTime)}</span>`);
-      if (a.algo3Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 3 Buy${formatSignalTime(a.algo3BuyTime)}">A3↑${formatSignalTime(a.algo3BuyTime)}</span>`);
-      if (a.algo3Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 3 Sell${formatSignalTime(a.algo3SellTime)}">A3↓${formatSignalTime(a.algo3SellTime)}</span>`);
+      if (a.algo1Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 1 Buy${formatSignalTime(a.algo1BuyTime)}">A1${formatSignalTime(a.algo1BuyTime)}</span>`);
+      if (a.algo1Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 1 Sell${formatSignalTime(a.algo1SellTime)}">A1${formatSignalTime(a.algo1SellTime)}</span>`);
+      if (a.algo2Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 2 Buy${formatSignalTime(a.algo2BuyTime)}">A2${formatSignalTime(a.algo2BuyTime)}</span>`);
+      if (a.algo2Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 2 Sell${formatSignalTime(a.algo2SellTime)}">A2${formatSignalTime(a.algo2SellTime)}</span>`);
+      if (a.algo3Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 3 Buy${formatSignalTime(a.algo3BuyTime)}">A3${formatSignalTime(a.algo3BuyTime)}</span>`);
+      if (a.algo3Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 3 Sell${formatSignalTime(a.algo3SellTime)}">A3${formatSignalTime(a.algo3SellTime)}</span>`);
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
@@ -1035,6 +1068,7 @@
       const item = dashboardData.find(d => d.symbol === symbol);
       if (!item) return;
       document.getElementById('detailSymbol').textContent = symbol;
+      document.getElementById('detailLinks').innerHTML = renderLinks(symbol);
       document.getElementById('detailModal').classList.remove('hidden');
       const tvContainer = document.getElementById('tvChart');
       tvContainer.innerHTML = '';
@@ -1043,7 +1077,7 @@
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">MSS/BOS Analysis</h3>${item.mssbos ? `<div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => { const data = item.mssbos.timeframes?.[tf]; const cls = data?.direction === 'BULL' ? 'tf-bull' : data?.direction === 'BEAR' ? 'tf-bear' : 'tf-none'; return `<div class="tf-cell ${cls}">${tf}</div>`; }).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution (${item.momentum.cautionCount || 0})</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? '↑ BUY' : item.multialgo.algo1Sell ? '↓ SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? '↑ BUY' : item.multialgo.algo2Sell ? '↓ SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? '↑ BUY' : item.multialgo.algo3Sell ? '↓ SELL' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? 'BUY' : item.multialgo.algo1Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? 'BUY' : item.multialgo.algo2Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? 'BUY' : item.multialgo.algo3Sell ? 'SELL' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
     }
 
     function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
