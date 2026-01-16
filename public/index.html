@@ -477,7 +477,6 @@
           <thead class="bg-gray-900 sticky top-0 z-10">
             <tr class="text-left text-xs text-gray-400">
               <th class="px-3 py-2 font-medium">Symbol</th>
-              <th class="px-3 py-2 font-medium">Links</th>
               <th class="px-3 py-2 font-medium">Price</th>
               <th class="px-3 py-2 font-medium">1h %</th>
               <th class="px-3 py-2 font-medium">24h %</th>
@@ -488,6 +487,7 @@
               <th class="px-3 py-2 font-medium">OB/OS</th>
               <th class="px-3 py-2 font-medium">Algo</th>
               <th class="px-3 py-2 font-medium">Updated</th>
+              <th class="px-3 py-2 font-medium">Links</th>
             </tr>
           </thead>
           <tbody id="dataTable" class="divide-y divide-gray-800"></tbody>
@@ -976,7 +976,6 @@
       tbody.innerHTML = data.map(item => `
         <tr class="table-row cursor-pointer" onclick="showDetail('${item.symbol}')">
           <td class="px-3 py-2"><span class="font-semibold">${item.symbol}</span>${!item.hasData ? '<span class="text-xs text-gray-500 ml-1">(no data)</span>' : ''}</td>
-          <td class="px-3 py-2">${renderLinks(item.symbol)}</td>
           <td class="px-3 py-2 font-mono">${formatPrice(item.price)}</td>
           <td class="px-3 py-2">${formatChange(item.priceChange1h)}</td>
           <td class="px-3 py-2">${formatChange(item.priceChange24h)}</td>
@@ -987,13 +986,14 @@
           <td class="px-3 py-2">${renderObOs(item.multialgo)}</td>
           <td class="px-3 py-2">${renderAlgo(item.multialgo)}</td>
           <td class="px-3 py-2 text-xs text-gray-500">${formatTime(item.lastUpdated)}</td>
+          <td class="px-3 py-2">${renderLinks(item.symbol)}</td>
         </tr>
       `).join('');
     }
 
     function renderLinks(symbol) {
       const kcexSymbol = symbol.replace('USDT', '_USDT');
-      return `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Open in TradingView">📺</a> <a href="https://www.kcex.com/futures/exchange/${kcexSymbol}?type=linear_swap" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Trade on KCEX">🔄</a>`;
+      return `<a href="https://www.tradingview.com/chart/?symbol=BINANCE:${symbol}" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Open in TradingView">📺</a> <a href="https://www.kcex.com/futures/exchange/${kcexSymbol}?type=linear_swap" target="_blank" onclick="event.stopPropagation()" class="hover:opacity-70" title="Trade on KCEX"><img src="https://www.kcex.com/favicon.ico" alt="K" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></a>`;
     }
 
     function renderObOs(a) {
