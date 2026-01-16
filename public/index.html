@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Dashboard v2.0</title>
+  <title>Trading Dashboard v2.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://s3.tradingview.com/tv.js"></script>
   <style>
@@ -284,10 +284,39 @@
         <button onclick="switchTab('all')" id="tabAll" class="tab px-4 py-2.5 text-sm border-b-2 border-blue-500 text-blue-400">All Symbols</button>
         <button onclick="switchTab('longs')" id="tabLongs" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📈 Longs</button>
         <button onclick="switchTab('shorts')" id="tabShorts" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Shorts</button>
-        <button onclick="switchTab('gainers')" id="tabGainers" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🚀 Gainers</button>
-        <button onclick="switchTab('losers')" id="tabLosers" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Losers</button>
+        <button onclick="switchTab('algo')" id="tabAlgo" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🤖 Algo Signals</button>
         <button onclick="switchTab('watchlist')" id="tabWatchlist" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">⭐ Watchlist</button>
         <button onclick="switchTab('signals')" id="tabSignals" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📜 Signal History</button>
+      </div>
+      
+      <!-- Algo Signals Sub-Tabs Panel -->
+      <div id="algoCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-medium text-purple-400">🤖 Algo Filter:</span>
+          <div class="flex gap-1">
+            <button onclick="setAlgoFilter('all')" id="algoFilterAll" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-purple-600 text-white">All Algos</button>
+            <button onclick="setAlgoFilter('algo1')" id="algoFilterAlgo1" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 1</button>
+            <button onclick="setAlgoFilter('algo2')" id="algoFilterAlgo2" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 2</button>
+            <button onclick="setAlgoFilter('algo3')" id="algoFilterAlgo3" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 3</button>
+          </div>
+          <div class="flex items-center gap-2 ml-4">
+            <span class="text-xs text-gray-400">Direction:</span>
+            <select id="algoDirection" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="all">All</option>
+              <option value="buy">Buy Only</option>
+              <option value="sell">Sell Only</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 ml-4">
+            <span class="text-xs text-gray-400">Show:</span>
+            <select id="algoTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="active">Currently Active</option>
+              <option value="1h">Last 1 Hour</option>
+              <option value="4h">Last 4 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+            </select>
+          </div>
+        </div>
       </div>
       
       <!-- Longs Criteria Panel -->
@@ -723,6 +752,44 @@
       });
     }
 
+    // Filter for Algo Signals tab
+    function filterAlgoSignals(data) {
+      const algoFilter = currentAlgoFilter;
+      const direction = document.getElementById('algoDirection')?.value || 'all';
+      
+      return data.filter(item => {
+        if (!item.multialgo) return false;
+        
+        const a = item.multialgo;
+        let hasSignal = false;
+        
+        // Check based on algo filter
+        if (algoFilter === 'all') {
+          if (direction === 'all') {
+            hasSignal = a.algo1Buy || a.algo1Sell || a.algo2Buy || a.algo2Sell || a.algo3Buy || a.algo3Sell;
+          } else if (direction === 'buy') {
+            hasSignal = a.algo1Buy || a.algo2Buy || a.algo3Buy;
+          } else if (direction === 'sell') {
+            hasSignal = a.algo1Sell || a.algo2Sell || a.algo3Sell;
+          }
+        } else if (algoFilter === 'algo1') {
+          if (direction === 'all') hasSignal = a.algo1Buy || a.algo1Sell;
+          else if (direction === 'buy') hasSignal = a.algo1Buy;
+          else if (direction === 'sell') hasSignal = a.algo1Sell;
+        } else if (algoFilter === 'algo2') {
+          if (direction === 'all') hasSignal = a.algo2Buy || a.algo2Sell;
+          else if (direction === 'buy') hasSignal = a.algo2Buy;
+          else if (direction === 'sell') hasSignal = a.algo2Sell;
+        } else if (algoFilter === 'algo3') {
+          if (direction === 'all') hasSignal = a.algo3Buy || a.algo3Sell;
+          else if (direction === 'buy') hasSignal = a.algo3Buy;
+          else if (direction === 'sell') hasSignal = a.algo3Sell;
+        }
+        
+        return hasSignal;
+      }).sort((a, b) => (b.multialgo?.lastUpdated || 0) - (a.multialgo?.lastUpdated || 0));
+    }
+
     function applySetupCriteria() {
       renderTable();
     }
@@ -763,8 +830,7 @@
 
       if (currentTab === 'longs') { data = filterBySetupCriteria(dashboardData, 'long'); }
       else if (currentTab === 'shorts') { data = filterBySetupCriteria(dashboardData, 'short'); }
-      else if (currentTab === 'gainers') { const movers = await loadMovers(); data = movers.gainers; }
-      else if (currentTab === 'losers') { const movers = await loadMovers(); data = movers.losers; }
+      else if (currentTab === 'algo') { data = filterAlgoSignals(dashboardData); }
       else if (currentTab === 'watchlist') { data = dashboardData.filter(d => d.inWatchlist); }
       else if (currentTab === 'signals') {
         const signals = await loadSignals();
@@ -897,7 +963,24 @@
       // Show/hide criteria panels
       document.getElementById('longsCriteriaPanel').classList.toggle('hidden', tab !== 'longs');
       document.getElementById('shortsCriteriaPanel').classList.toggle('hidden', tab !== 'shorts');
+      document.getElementById('algoCriteriaPanel').classList.toggle('hidden', tab !== 'algo');
       
+      renderTable();
+    }
+
+    // Algo sub-tab filter
+    let currentAlgoFilter = 'all';
+    function setAlgoFilter(filter) {
+      currentAlgoFilter = filter;
+      document.querySelectorAll('.algo-sub-tab').forEach(t => {
+        t.classList.remove('bg-purple-600', 'text-white');
+        t.classList.add('bg-gray-700', 'text-gray-300');
+      });
+      const active = document.getElementById(`algoFilter${filter.charAt(0).toUpperCase() + filter.slice(1)}`);
+      if (active) {
+        active.classList.remove('bg-gray-700', 'text-gray-300');
+        active.classList.add('bg-purple-600', 'text-white');
+      }
       renderTable();
     }
 
