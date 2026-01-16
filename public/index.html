@@ -285,8 +285,8 @@
         <button onclick="switchTab('longs')" id="tabLongs" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📈 Longs</button>
         <button onclick="switchTab('shorts')" id="tabShorts" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📉 Shorts</button>
         <button onclick="switchTab('algo')" id="tabAlgo" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🤖 Algo Signals</button>
-        <button onclick="switchTab('watchlist')" id="tabWatchlist" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">⭐ Watchlist</button>
-        <button onclick="switchTab('signals')" id="tabSignals" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📜 Signal History</button>
+        <button onclick="switchTab('obos')" id="tabObos" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🔴🟢 OB/OS</button>
+        <button onclick="switchTab('zones')" id="tabZones" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🎯 Zone Rejections</button>
       </div>
       
       <!-- Algo Signals Sub-Tabs Panel -->
@@ -310,6 +310,48 @@
           <div class="flex items-center gap-2 ml-4">
             <span class="text-xs text-gray-400">Show:</span>
             <select id="algoTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="active">Currently Active</option>
+              <option value="1h">Last 1 Hour</option>
+              <option value="4h">Last 4 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- OB/OS Sub-Tabs Panel -->
+      <div id="obosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-medium text-yellow-400">🔴🟢 OB/OS Filter:</span>
+          <div class="flex gap-1">
+            <button onclick="setObosFilter('all')" id="obosFilterAll" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-yellow-600 text-white">All</button>
+            <button onclick="setObosFilter('overbought')" id="obosFilterOverbought" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Overbought</button>
+            <button onclick="setObosFilter('oversold')" id="obosFilterOversold" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Oversold</button>
+          </div>
+          <div class="flex items-center gap-2 ml-4">
+            <span class="text-xs text-gray-400">Show:</span>
+            <select id="obosTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="active">Currently Active</option>
+              <option value="1h">Last 1 Hour</option>
+              <option value="4h">Last 4 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Zone Rejections Sub-Tabs Panel -->
+      <div id="zonesCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-4">
+          <span class="text-sm font-medium text-blue-400">🎯 Zone Filter:</span>
+          <div class="flex gap-1">
+            <button onclick="setZoneFilter('all')" id="zoneFilterAll" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-blue-600 text-white">All</button>
+            <button onclick="setZoneFilter('demand')" id="zoneFilterDemand" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Demand</button>
+            <button onclick="setZoneFilter('supply')" id="zoneFilterSupply" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Supply</button>
+          </div>
+          <div class="flex items-center gap-2 ml-4">
+            <span class="text-xs text-gray-400">Show:</span>
+            <select id="zonesTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
               <option value="active">Currently Active</option>
               <option value="1h">Last 1 Hour</option>
               <option value="4h">Last 4 Hours</option>
@@ -466,29 +508,6 @@
         </div>
       </div>
     </main>
-    
-    <!-- Right Sidebar - Recent Alerts -->
-    <aside class="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
-      <div class="p-3 border-b border-gray-700 flex items-center justify-between">
-        <h2 class="font-semibold text-sm">🔔 Recent Alerts</h2>
-        <select id="alertFilter" onchange="loadAlerts()" class="text-xs bg-gray-700 border border-gray-600 rounded px-2 py-1">
-          <option value="">All</option>
-          <option value="SETUP">Setups</option>
-          <option value="ZONE">Zones</option>
-          <option value="DEMAND_REJECTION">Demand Rejection</option>
-          <option value="SUPPLY_REJECTION">Supply Rejection</option>
-          <option value="OVERBOUGHT">15M + 1H Overbought</option>
-          <option value="OVERSOLD">15M + 1H Oversold</option>
-          <option value="ALGO1">Algo 1</option>
-          <option value="ALGO2">Algo 2</option>
-          <option value="ALGO3">Algo 3</option>
-          <option value="MSSBOS">MSS/BOS</option>
-          <option value="MOMENTUM">Momentum</option>
-          <option value="DIVERGENCE">Divergence</option>
-        </select>
-      </div>
-      <div id="alertsList" class="flex-1 overflow-y-auto"></div>
-    </aside>
   </div>
 
   <!-- Symbol Detail Modal -->
@@ -539,7 +558,7 @@
       stopAutoRefresh();
       const seconds = parseInt(document.getElementById('refreshInterval').value);
       if (seconds === 0) return;
-      autoRefreshInterval = setInterval(() => { fetchDashboard(); loadAlerts(); }, seconds * 1000);
+      autoRefreshInterval = setInterval(() => { fetchDashboard(); }, seconds * 1000);
     }
 
     function stopAutoRefresh() {
@@ -566,35 +585,9 @@
       } catch (e) { console.error('Fetch error:', e); }
     }
 
-    async function loadAlerts() {
-      try {
-        const filterValue = document.getElementById('alertFilter').value;
-        let url = `${API}/api/alerts?limit=50`;
-        if (filterValue === 'DEMAND_REJECTION' || filterValue === 'SUPPLY_REJECTION') url += `&type=${filterValue}`;
-        else if (filterValue === 'OVERBOUGHT') url += `&type=DOTS_GREEN`;
-        else if (filterValue === 'OVERSOLD') url += `&type=DOTS_RED`;
-        else if (filterValue === 'ALGO1') url += `&type=ALGO1`;
-        else if (filterValue === 'ALGO2') url += `&type=ALGO2`;
-        else if (filterValue === 'ALGO3') url += `&type=ALGO3`;
-        else if (filterValue) url += `&category=${filterValue}`;
-        const res = await fetch(url);
-        renderAlerts(await res.json());
-      } catch (e) { console.error('Alert fetch error:', e); }
-    }
-
     async function loadSetups() {
       try { const res = await fetch(`${API}/api/setups`); return await res.json(); }
       catch (e) { return { longs: [], shorts: [] }; }
-    }
-
-    async function loadSignals() {
-      try { const res = await fetch(`${API}/api/signals?limit=100`); return await res.json(); }
-      catch (e) { return []; }
-    }
-
-    async function loadMovers(tf = '24h') {
-      try { const res = await fetch(`${API}/api/movers?tf=${tf}&limit=20`); return await res.json(); }
-      catch (e) { return { gainers: [], losers: [] }; }
     }
 
     // Timeframe Helpers
@@ -842,6 +835,84 @@
       }).sort((a, b) => (b._latestSignalTime || 0) - (a._latestSignalTime || 0));
     }
 
+    // Filter for OB/OS tab
+    function filterObosSignals(data) {
+      const obosFilter = currentObosFilter;
+      const timeRange = document.getElementById('obosTimeRange')?.value || 'active';
+      
+      const now = Date.now();
+      let timeThreshold = 0;
+      if (timeRange === '1h') timeThreshold = now - (60 * 60 * 1000);
+      else if (timeRange === '4h') timeThreshold = now - (4 * 60 * 60 * 1000);
+      else if (timeRange === '24h') timeThreshold = now - (24 * 60 * 60 * 1000);
+      
+      return data.filter(item => {
+        if (!item.multialgo) return false;
+        
+        const a = item.multialgo;
+        let hasSignal = false;
+        let latestSignalTime = 0;
+        
+        const isWithinTimeRange = (signalTime) => {
+          if (timeRange === 'active') return true;
+          return signalTime && signalTime >= timeThreshold;
+        };
+        
+        if (obosFilter === 'all') {
+          hasSignal = (a.dotsGreen && isWithinTimeRange(a.dotsGreenTime)) || (a.dotsRed && isWithinTimeRange(a.dotsRedTime));
+          latestSignalTime = Math.max(a.dotsGreenTime || 0, a.dotsRedTime || 0);
+        } else if (obosFilter === 'overbought') {
+          hasSignal = a.dotsGreen && isWithinTimeRange(a.dotsGreenTime);
+          latestSignalTime = a.dotsGreenTime || 0;
+        } else if (obosFilter === 'oversold') {
+          hasSignal = a.dotsRed && isWithinTimeRange(a.dotsRedTime);
+          latestSignalTime = a.dotsRedTime || 0;
+        }
+        
+        item._latestSignalTime = latestSignalTime;
+        return hasSignal;
+      }).sort((a, b) => (b._latestSignalTime || 0) - (a._latestSignalTime || 0));
+    }
+
+    // Filter for Zone Rejections tab
+    function filterZoneRejections(data) {
+      const zoneFilter = currentZoneFilter;
+      const timeRange = document.getElementById('zonesTimeRange')?.value || 'active';
+      
+      const now = Date.now();
+      let timeThreshold = 0;
+      if (timeRange === '1h') timeThreshold = now - (60 * 60 * 1000);
+      else if (timeRange === '4h') timeThreshold = now - (4 * 60 * 60 * 1000);
+      else if (timeRange === '24h') timeThreshold = now - (24 * 60 * 60 * 1000);
+      
+      return data.filter(item => {
+        if (!item.supplydemand) return false;
+        
+        const sd = item.supplydemand;
+        let hasSignal = false;
+        let latestSignalTime = 0;
+        
+        const isWithinTimeRange = (signalTime) => {
+          if (timeRange === 'active') return true;
+          return signalTime && signalTime >= timeThreshold;
+        };
+        
+        if (zoneFilter === 'all') {
+          hasSignal = (sd.demandRejection && isWithinTimeRange(sd.demandRejectionTime)) || (sd.supplyRejection && isWithinTimeRange(sd.supplyRejectionTime));
+          latestSignalTime = Math.max(sd.demandRejectionTime || 0, sd.supplyRejectionTime || 0);
+        } else if (zoneFilter === 'demand') {
+          hasSignal = sd.demandRejection && isWithinTimeRange(sd.demandRejectionTime);
+          latestSignalTime = sd.demandRejectionTime || 0;
+        } else if (zoneFilter === 'supply') {
+          hasSignal = sd.supplyRejection && isWithinTimeRange(sd.supplyRejectionTime);
+          latestSignalTime = sd.supplyRejectionTime || 0;
+        }
+        
+        item._latestSignalTime = latestSignalTime;
+        return hasSignal;
+      }).sort((a, b) => (b._latestSignalTime || 0) - (a._latestSignalTime || 0));
+    }
+
     function applySetupCriteria() {
       renderTable();
     }
@@ -883,12 +954,8 @@
       if (currentTab === 'longs') { data = filterBySetupCriteria(dashboardData, 'long'); }
       else if (currentTab === 'shorts') { data = filterBySetupCriteria(dashboardData, 'short'); }
       else if (currentTab === 'algo') { data = filterAlgoSignals(dashboardData); }
-      else if (currentTab === 'watchlist') { data = dashboardData.filter(d => d.inWatchlist); }
-      else if (currentTab === 'signals') {
-        const signals = await loadSignals();
-        tbody.innerHTML = signals.map(s => `<tr class="table-row"><td class="px-3 py-2 font-semibold">${s.symbol}</td><td class="px-3 py-2">${s.signal_type}</td><td class="px-3 py-2"><span class="badge ${s.direction === 'BULL' ? 'badge-bull' : 'badge-bear'}">${s.direction}</span></td><td class="px-3 py-2">${s.timeframe || '-'}</td><td class="px-3 py-2 font-mono">${formatPrice(s.price_at_signal)}</td><td class="px-3 py-2 text-gray-400">${formatTime(s.timestamp)}</td><td class="px-3 py-2">${s.indicator}</td><td class="px-3 py-2"></td><td class="px-3 py-2"></td><td class="px-3 py-2"></td></tr>`).join('');
-        empty.classList.add('hidden'); noData.classList.add('hidden'); return;
-      }
+      else if (currentTab === 'obos') { data = filterObosSignals(dashboardData); }
+      else if (currentTab === 'zones') { data = filterZoneRejections(dashboardData); }
 
       if (dashboardData.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); noData.classList.add('hidden'); return; }
       if (data.length === 0) { tbody.innerHTML = ''; empty.classList.add('hidden'); noData.classList.remove('hidden'); return; }
@@ -919,10 +986,20 @@
     function renderZone(sd) {
       if (!sd) return '<span class="text-gray-500">-</span>';
       const parts = [];
+      const formatSignalTime = (ts) => {
+        if (!ts) return '';
+        const mins = Math.floor((Date.now() - ts) / 60000);
+        if (mins < 1) return ' (now)';
+        if (mins < 60) return ` (${mins}m)`;
+        const hrs = Math.floor(mins / 60);
+        return ` (${hrs}h)`;
+      };
       const demandTFs = sd.demandZones ? Object.entries(sd.demandZones).filter(([k,v]) => v).map(([k]) => k) : [];
       const supplyTFs = sd.supplyZones ? Object.entries(sd.supplyZones).filter(([k,v]) => v).map(([k]) => k) : [];
       if (demandTFs.length) parts.push(`<span class="badge badge-bull">D:${demandTFs.slice(0,3).join(',')}</span>`);
       if (supplyTFs.length) parts.push(`<span class="badge badge-bear">S:${supplyTFs.slice(0,3).join(',')}</span>`);
+      if (sd.demandRejection) parts.push(`<span class="text-xs text-green-400" title="Demand Rejection${formatSignalTime(sd.demandRejectionTime)}">DR${formatSignalTime(sd.demandRejectionTime)}</span>`);
+      if (sd.supplyRejection) parts.push(`<span class="text-xs text-red-400" title="Supply Rejection${formatSignalTime(sd.supplyRejectionTime)}">SR${formatSignalTime(sd.supplyRejectionTime)}</span>`);
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
@@ -942,8 +1019,8 @@
         const hrs = Math.floor(mins / 60);
         return ` (${hrs}h)`;
       };
-      if (a.dotsGreen) parts.push('<span class="text-green-400" title="15M+1H Overbought">OB</span>');
-      if (a.dotsRed) parts.push('<span class="text-red-400" title="15M+1H Oversold">OS</span>');
+      if (a.dotsGreen) parts.push(`<span class="text-green-400" title="15M+1H Overbought${formatSignalTime(a.dotsGreenTime)}">OB${formatSignalTime(a.dotsGreenTime)}</span>`);
+      if (a.dotsRed) parts.push(`<span class="text-red-400" title="15M+1H Oversold${formatSignalTime(a.dotsRedTime)}">OS${formatSignalTime(a.dotsRedTime)}</span>`);
       if (a.algo1Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 1 Buy${formatSignalTime(a.algo1BuyTime)}">A1↑${formatSignalTime(a.algo1BuyTime)}</span>`);
       if (a.algo1Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 1 Sell${formatSignalTime(a.algo1SellTime)}">A1↓${formatSignalTime(a.algo1SellTime)}</span>`);
       if (a.algo2Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 2 Buy${formatSignalTime(a.algo2BuyTime)}">A2↑${formatSignalTime(a.algo2BuyTime)}</span>`);
@@ -951,21 +1028,6 @@
       if (a.algo3Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 3 Buy${formatSignalTime(a.algo3BuyTime)}">A3↑${formatSignalTime(a.algo3BuyTime)}</span>`);
       if (a.algo3Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 3 Sell${formatSignalTime(a.algo3SellTime)}">A3↓${formatSignalTime(a.algo3SellTime)}</span>`);
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
-    }
-
-    function renderAlerts(alerts) {
-      const container = document.getElementById('alertsList');
-      if (!alerts.length) { container.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">No alerts yet</div>'; return; }
-      container.innerHTML = alerts.map(a => {
-        let displayType = a.alert_type;
-        if (a.alert_type === 'DOTS_GREEN') displayType = '15M+1H OVERBOUGHT';
-        if (a.alert_type === 'DOTS_RED') displayType = '15M+1H OVERSOLD';
-        return `<div class="alert-item ${a.importance === 'high' ? 'alert-high' : 'alert-normal'} px-3 py-2 border-b border-gray-700">
-          <div class="flex items-center justify-between mb-1"><span class="font-semibold text-sm">${a.symbol}</span><span class="text-xs text-gray-500">${formatTime(a.timestamp)}</span></div>
-          <p class="text-xs text-gray-300">${a.message}</p>
-          <div class="flex items-center gap-2 mt-1"><span class="badge ${a.direction === 'BULL' ? 'badge-bull' : a.direction === 'BEAR' ? 'badge-bear' : 'badge-neutral'}">${displayType}</span>${a.timeframe ? `<span class="text-xs text-gray-500">${a.timeframe}</span>` : ''}</div>
-        </div>`;
-      }).join('');
     }
 
     // Detail Modal
@@ -1010,7 +1072,6 @@
         await fetch(`${API}/api/alert-settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alert_type: toggle.dataset.type, show_in_panel: toggle.checked }) });
       }
       closeAlertSettings();
-      loadAlerts();
     }
 
     // Tabs
@@ -1024,7 +1085,41 @@
       document.getElementById('longsCriteriaPanel').classList.toggle('hidden', tab !== 'longs');
       document.getElementById('shortsCriteriaPanel').classList.toggle('hidden', tab !== 'shorts');
       document.getElementById('algoCriteriaPanel').classList.toggle('hidden', tab !== 'algo');
+      document.getElementById('obosCriteriaPanel').classList.toggle('hidden', tab !== 'obos');
+      document.getElementById('zonesCriteriaPanel').classList.toggle('hidden', tab !== 'zones');
       
+      renderTable();
+    }
+
+    // OB/OS sub-tab filter
+    let currentObosFilter = 'all';
+    function setObosFilter(filter) {
+      currentObosFilter = filter;
+      document.querySelectorAll('.obos-sub-tab').forEach(t => {
+        t.classList.remove('bg-yellow-600', 'text-white');
+        t.classList.add('bg-gray-700', 'text-gray-300');
+      });
+      const active = document.getElementById(`obosFilter${filter.charAt(0).toUpperCase() + filter.slice(1)}`);
+      if (active) {
+        active.classList.remove('bg-gray-700', 'text-gray-300');
+        active.classList.add('bg-yellow-600', 'text-white');
+      }
+      renderTable();
+    }
+
+    // Zone Rejection sub-tab filter
+    let currentZoneFilter = 'all';
+    function setZoneFilter(filter) {
+      currentZoneFilter = filter;
+      document.querySelectorAll('.zone-sub-tab').forEach(t => {
+        t.classList.remove('bg-blue-600', 'text-white');
+        t.classList.add('bg-gray-700', 'text-gray-300');
+      });
+      const active = document.getElementById(`zoneFilter${filter.charAt(0).toUpperCase() + filter.slice(1)}`);
+      if (active) {
+        active.classList.remove('bg-gray-700', 'text-gray-300');
+        active.classList.add('bg-blue-600', 'text-white');
+      }
       renderTable();
     }
 
@@ -1048,10 +1143,10 @@
     function formatPrice(p) { if (!p) return '-'; if (p < 0.0001) return p.toExponential(3); if (p < 1) return p.toFixed(6); if (p < 100) return p.toFixed(4); return p.toLocaleString(undefined, { maximumFractionDigits: 2 }); }
     function formatChange(c) { if (c === undefined || c === null) return '<span class="text-gray-500">-</span>'; const color = c >= 0 ? 'text-green-400' : 'text-red-400'; return `<span class="${color}">${c >= 0 ? '+' : ''}${c.toFixed(2)}%</span>`; }
     function formatTime(ts) { if (!ts) return '-'; const diff = (Date.now() - ts) / 1000; if (diff < 60) return 'Now'; if (diff < 3600) return `${Math.floor(diff/60)}m`; if (diff < 86400) return `${Math.floor(diff/3600)}h`; return new Date(ts).toLocaleDateString(); }
-    function refreshData() { fetchDashboard(); loadAlerts(); }
+    function refreshData() { fetchDashboard(); }
 
     // Init
-    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); loadAlerts(); toggleAutoRefresh(); });
+    document.addEventListener('DOMContentLoaded', () => { fetchDashboard(); toggleAutoRefresh(); });
   </script>
 </body>
 </html>
