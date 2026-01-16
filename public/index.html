@@ -756,38 +756,90 @@
     function filterAlgoSignals(data) {
       const algoFilter = currentAlgoFilter;
       const direction = document.getElementById('algoDirection')?.value || 'all';
+      const timeRange = document.getElementById('algoTimeRange')?.value || 'active';
+      
+      // Calculate time threshold based on time range
+      const now = Date.now();
+      let timeThreshold = 0;
+      if (timeRange === '1h') timeThreshold = now - (60 * 60 * 1000);
+      else if (timeRange === '4h') timeThreshold = now - (4 * 60 * 60 * 1000);
+      else if (timeRange === '24h') timeThreshold = now - (24 * 60 * 60 * 1000);
+      // 'active' means currently active (no time filter beyond sticky period)
       
       return data.filter(item => {
         if (!item.multialgo) return false;
         
         const a = item.multialgo;
         let hasSignal = false;
+        let latestSignalTime = 0;
+        
+        // Helper to check if signal is within time range
+        const isWithinTimeRange = (signalTime) => {
+          if (timeRange === 'active') return true; // Server handles sticky duration
+          return signalTime && signalTime >= timeThreshold;
+        };
         
         // Check based on algo filter
         if (algoFilter === 'all') {
           if (direction === 'all') {
-            hasSignal = a.algo1Buy || a.algo1Sell || a.algo2Buy || a.algo2Sell || a.algo3Buy || a.algo3Sell;
+            hasSignal = (a.algo1Buy && isWithinTimeRange(a.algo1BuyTime)) || 
+                        (a.algo1Sell && isWithinTimeRange(a.algo1SellTime)) || 
+                        (a.algo2Buy && isWithinTimeRange(a.algo2BuyTime)) || 
+                        (a.algo2Sell && isWithinTimeRange(a.algo2SellTime)) || 
+                        (a.algo3Buy && isWithinTimeRange(a.algo3BuyTime)) || 
+                        (a.algo3Sell && isWithinTimeRange(a.algo3SellTime));
+            latestSignalTime = Math.max(a.algo1BuyTime || 0, a.algo1SellTime || 0, a.algo2BuyTime || 0, a.algo2SellTime || 0, a.algo3BuyTime || 0, a.algo3SellTime || 0);
           } else if (direction === 'buy') {
-            hasSignal = a.algo1Buy || a.algo2Buy || a.algo3Buy;
+            hasSignal = (a.algo1Buy && isWithinTimeRange(a.algo1BuyTime)) || 
+                        (a.algo2Buy && isWithinTimeRange(a.algo2BuyTime)) || 
+                        (a.algo3Buy && isWithinTimeRange(a.algo3BuyTime));
+            latestSignalTime = Math.max(a.algo1BuyTime || 0, a.algo2BuyTime || 0, a.algo3BuyTime || 0);
           } else if (direction === 'sell') {
-            hasSignal = a.algo1Sell || a.algo2Sell || a.algo3Sell;
+            hasSignal = (a.algo1Sell && isWithinTimeRange(a.algo1SellTime)) || 
+                        (a.algo2Sell && isWithinTimeRange(a.algo2SellTime)) || 
+                        (a.algo3Sell && isWithinTimeRange(a.algo3SellTime));
+            latestSignalTime = Math.max(a.algo1SellTime || 0, a.algo2SellTime || 0, a.algo3SellTime || 0);
           }
         } else if (algoFilter === 'algo1') {
-          if (direction === 'all') hasSignal = a.algo1Buy || a.algo1Sell;
-          else if (direction === 'buy') hasSignal = a.algo1Buy;
-          else if (direction === 'sell') hasSignal = a.algo1Sell;
+          if (direction === 'all') {
+            hasSignal = (a.algo1Buy && isWithinTimeRange(a.algo1BuyTime)) || (a.algo1Sell && isWithinTimeRange(a.algo1SellTime));
+            latestSignalTime = Math.max(a.algo1BuyTime || 0, a.algo1SellTime || 0);
+          } else if (direction === 'buy') {
+            hasSignal = a.algo1Buy && isWithinTimeRange(a.algo1BuyTime);
+            latestSignalTime = a.algo1BuyTime || 0;
+          } else if (direction === 'sell') {
+            hasSignal = a.algo1Sell && isWithinTimeRange(a.algo1SellTime);
+            latestSignalTime = a.algo1SellTime || 0;
+          }
         } else if (algoFilter === 'algo2') {
-          if (direction === 'all') hasSignal = a.algo2Buy || a.algo2Sell;
-          else if (direction === 'buy') hasSignal = a.algo2Buy;
-          else if (direction === 'sell') hasSignal = a.algo2Sell;
+          if (direction === 'all') {
+            hasSignal = (a.algo2Buy && isWithinTimeRange(a.algo2BuyTime)) || (a.algo2Sell && isWithinTimeRange(a.algo2SellTime));
+            latestSignalTime = Math.max(a.algo2BuyTime || 0, a.algo2SellTime || 0);
+          } else if (direction === 'buy') {
+            hasSignal = a.algo2Buy && isWithinTimeRange(a.algo2BuyTime);
+            latestSignalTime = a.algo2BuyTime || 0;
+          } else if (direction === 'sell') {
+            hasSignal = a.algo2Sell && isWithinTimeRange(a.algo2SellTime);
+            latestSignalTime = a.algo2SellTime || 0;
+          }
         } else if (algoFilter === 'algo3') {
-          if (direction === 'all') hasSignal = a.algo3Buy || a.algo3Sell;
-          else if (direction === 'buy') hasSignal = a.algo3Buy;
-          else if (direction === 'sell') hasSignal = a.algo3Sell;
+          if (direction === 'all') {
+            hasSignal = (a.algo3Buy && isWithinTimeRange(a.algo3BuyTime)) || (a.algo3Sell && isWithinTimeRange(a.algo3SellTime));
+            latestSignalTime = Math.max(a.algo3BuyTime || 0, a.algo3SellTime || 0);
+          } else if (direction === 'buy') {
+            hasSignal = a.algo3Buy && isWithinTimeRange(a.algo3BuyTime);
+            latestSignalTime = a.algo3BuyTime || 0;
+          } else if (direction === 'sell') {
+            hasSignal = a.algo3Sell && isWithinTimeRange(a.algo3SellTime);
+            latestSignalTime = a.algo3SellTime || 0;
+          }
         }
         
+        // Store latest signal time for sorting
+        item._latestSignalTime = latestSignalTime;
+        
         return hasSignal;
-      }).sort((a, b) => (b.multialgo?.lastUpdated || 0) - (a.multialgo?.lastUpdated || 0));
+      }).sort((a, b) => (b._latestSignalTime || 0) - (a._latestSignalTime || 0));
     }
 
     function applySetupCriteria() {
@@ -882,14 +934,22 @@
     function renderAlgo(a) {
       if (!a) return '<span class="text-gray-500">-</span>';
       const parts = [];
+      const formatSignalTime = (ts) => {
+        if (!ts) return '';
+        const mins = Math.floor((Date.now() - ts) / 60000);
+        if (mins < 1) return ' (now)';
+        if (mins < 60) return ` (${mins}m)`;
+        const hrs = Math.floor(mins / 60);
+        return ` (${hrs}h)`;
+      };
       if (a.dotsGreen) parts.push('<span class="text-green-400" title="15M+1H Overbought">OB</span>');
       if (a.dotsRed) parts.push('<span class="text-red-400" title="15M+1H Oversold">OS</span>');
-      if (a.algo1Buy) parts.push('<span class="text-xs text-green-400">A1↑</span>');
-      if (a.algo1Sell) parts.push('<span class="text-xs text-red-400">A1↓</span>');
-      if (a.algo2Buy) parts.push('<span class="text-xs text-green-400">A2↑</span>');
-      if (a.algo2Sell) parts.push('<span class="text-xs text-red-400">A2↓</span>');
-      if (a.algo3Buy) parts.push('<span class="text-xs text-green-400">A3↑</span>');
-      if (a.algo3Sell) parts.push('<span class="text-xs text-red-400">A3↓</span>');
+      if (a.algo1Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 1 Buy${formatSignalTime(a.algo1BuyTime)}">A1↑${formatSignalTime(a.algo1BuyTime)}</span>`);
+      if (a.algo1Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 1 Sell${formatSignalTime(a.algo1SellTime)}">A1↓${formatSignalTime(a.algo1SellTime)}</span>`);
+      if (a.algo2Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 2 Buy${formatSignalTime(a.algo2BuyTime)}">A2↑${formatSignalTime(a.algo2BuyTime)}</span>`);
+      if (a.algo2Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 2 Sell${formatSignalTime(a.algo2SellTime)}">A2↓${formatSignalTime(a.algo2SellTime)}</span>`);
+      if (a.algo3Buy) parts.push(`<span class="text-xs text-green-400" title="Algo 3 Buy${formatSignalTime(a.algo3BuyTime)}">A3↑${formatSignalTime(a.algo3BuyTime)}</span>`);
+      if (a.algo3Sell) parts.push(`<span class="text-xs text-red-400" title="Algo 3 Sell${formatSignalTime(a.algo3SellTime)}">A3↓${formatSignalTime(a.algo3SellTime)}</span>`);
       return parts.length ? parts.join(' ') : '<span class="text-gray-500">-</span>';
     }
 
