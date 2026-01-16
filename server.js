@@ -224,29 +224,65 @@ function updateSupplyDemandCache(symbol, data) {
 
 function updateMultiAlgoCache(symbol, data) {
   const existing = cache.multialgo.get(symbol) || {};
+  const now = Date.now();
+  
+  // Sticky duration: signals stay "active" for 1 hour after firing
+  const STICKY_DURATION = 60 * 60 * 1000; // 1 hour in ms
   
   // Helper to convert "1"/"0" strings or 1/0 numbers to boolean
   const toBool = (val) => val === 1 || val === "1" || val === true;
   
-  // Get value with fallback to existing
-  const getValue = (newVal, existingVal) => {
-    if (newVal !== undefined && newVal !== null) {
-      return toBool(newVal);
+  // Get sticky value - if new signal is true, update timestamp. If false, check if still within sticky period
+  const getStickyValue = (newVal, existingVal, existingTime, fieldName) => {
+    const incomingTrue = toBool(newVal);
+    
+    if (incomingTrue) {
+      // New signal! Set true and record timestamp
+      return { value: true, time: now };
     }
-    return existingVal || false;
+    
+    // Incoming is false - check if we should keep it sticky
+    if (existingVal && existingTime) {
+      const elapsed = now - existingTime;
+      if (elapsed < STICKY_DURATION) {
+        // Still within sticky period, keep it true
+        return { value: true, time: existingTime };
+      }
+    }
+    
+    // No sticky, set to false
+    return { value: false, time: null };
   };
+  
+  // Process each algo signal with sticky logic
+  const algo1Buy = getStickyValue(data.algo1Buy ?? data.algo1_buy, existing.algo1Buy, existing.algo1BuyTime);
+  const algo1Sell = getStickyValue(data.algo1Sell ?? data.algo1_sell, existing.algo1Sell, existing.algo1SellTime);
+  const algo2Buy = getStickyValue(data.algo2Buy ?? data.algo2_buy, existing.algo2Buy, existing.algo2BuyTime);
+  const algo2Sell = getStickyValue(data.algo2Sell ?? data.algo2_sell, existing.algo2Sell, existing.algo2SellTime);
+  const algo3Buy = getStickyValue(data.algo3Buy ?? data.algo3_buy, existing.algo3Buy, existing.algo3BuyTime);
+  const algo3Sell = getStickyValue(data.algo3Sell ?? data.algo3_sell, existing.algo3Sell, existing.algo3SellTime);
+  
+  // Dots (OB/OS) don't need to be sticky - they reflect current state
+  const dotsGreen = toBool(data.dotsGreen ?? data.dots_green);
+  const dotsRed = toBool(data.dotsRed ?? data.dots_red);
   
   cache.multialgo.set(symbol, {
     symbol,
-    dotsGreen: getValue(data.dotsGreen ?? data.dots_green, existing.dotsGreen),
-    dotsRed: getValue(data.dotsRed ?? data.dots_red, existing.dotsRed),
-    algo1Buy: getValue(data.algo1Buy ?? data.algo1_buy, existing.algo1Buy),
-    algo1Sell: getValue(data.algo1Sell ?? data.algo1_sell, existing.algo1Sell),
-    algo2Buy: getValue(data.algo2Buy ?? data.algo2_buy, existing.algo2Buy),
-    algo2Sell: getValue(data.algo2Sell ?? data.algo2_sell, existing.algo2Sell),
-    algo3Buy: getValue(data.algo3Buy ?? data.algo3_buy, existing.algo3Buy),
-    algo3Sell: getValue(data.algo3Sell ?? data.algo3_sell, existing.algo3Sell),
-    lastUpdated: Date.now()
+    dotsGreen,
+    dotsRed,
+    algo1Buy: algo1Buy.value,
+    algo1BuyTime: algo1Buy.time,
+    algo1Sell: algo1Sell.value,
+    algo1SellTime: algo1Sell.time,
+    algo2Buy: algo2Buy.value,
+    algo2BuyTime: algo2Buy.time,
+    algo2Sell: algo2Sell.value,
+    algo2SellTime: algo2Sell.time,
+    algo3Buy: algo3Buy.value,
+    algo3BuyTime: algo3Buy.time,
+    algo3Sell: algo3Sell.value,
+    algo3SellTime: algo3Sell.time,
+    lastUpdated: now
   });
   
   cache.dirty.multialgo.add(symbol);
@@ -366,8 +402,8 @@ async function syncToDatabase() {
       const data = cache.multialgo.get(symbol);
       if (data) {
         await client.query(`
-          INSERT INTO multialgo_data (symbol, dots_green, dots_red, algo1_buy, algo1_sell, algo2_buy, algo2_sell, algo3_buy, algo3_sell, last_updated)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          INSERT INTO multialgo_data (symbol, dots_green, dots_red, algo1_buy, algo1_sell, algo2_buy, algo2_sell, algo3_buy, algo3_sell, algo1_buy_time, algo1_sell_time, algo2_buy_time, algo2_sell_time, algo3_buy_time, algo3_sell_time, last_updated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           ON CONFLICT (symbol) DO UPDATE SET
             dots_green = EXCLUDED.dots_green,
             dots_red = EXCLUDED.dots_red,
@@ -377,8 +413,14 @@ async function syncToDatabase() {
             algo2_sell = EXCLUDED.algo2_sell,
             algo3_buy = EXCLUDED.algo3_buy,
             algo3_sell = EXCLUDED.algo3_sell,
+            algo1_buy_time = EXCLUDED.algo1_buy_time,
+            algo1_sell_time = EXCLUDED.algo1_sell_time,
+            algo2_buy_time = EXCLUDED.algo2_buy_time,
+            algo2_sell_time = EXCLUDED.algo2_sell_time,
+            algo3_buy_time = EXCLUDED.algo3_buy_time,
+            algo3_sell_time = EXCLUDED.algo3_sell_time,
             last_updated = EXCLUDED.last_updated
-        `, [symbol, data.dotsGreen, data.dotsRed, data.algo1Buy, data.algo1Sell, data.algo2Buy, data.algo2Sell, data.algo3Buy, data.algo3Sell, data.lastUpdated]);
+        `, [symbol, data.dotsGreen, data.dotsRed, data.algo1Buy, data.algo1Sell, data.algo2Buy, data.algo2Sell, data.algo3Buy, data.algo3Sell, data.algo1BuyTime, data.algo1SellTime, data.algo2BuyTime, data.algo2SellTime, data.algo3BuyTime, data.algo3SellTime, data.lastUpdated]);
         syncCount++;
       }
     }
@@ -493,6 +535,12 @@ async function loadFromDatabase() {
         algo2Sell: row.algo2_sell,
         algo3Buy: row.algo3_buy,
         algo3Sell: row.algo3_sell,
+        algo1BuyTime: row.algo1_buy_time ? parseInt(row.algo1_buy_time) : null,
+        algo1SellTime: row.algo1_sell_time ? parseInt(row.algo1_sell_time) : null,
+        algo2BuyTime: row.algo2_buy_time ? parseInt(row.algo2_buy_time) : null,
+        algo2SellTime: row.algo2_sell_time ? parseInt(row.algo2_sell_time) : null,
+        algo3BuyTime: row.algo3_buy_time ? parseInt(row.algo3_buy_time) : null,
+        algo3SellTime: row.algo3_sell_time ? parseInt(row.algo3_sell_time) : null,
         lastUpdated: parseInt(row.last_updated)
       });
     }
@@ -595,9 +643,23 @@ async function initDatabase() {
         algo2_sell BOOLEAN,
         algo3_buy BOOLEAN,
         algo3_sell BOOLEAN,
+        algo1_buy_time BIGINT,
+        algo1_sell_time BIGINT,
+        algo2_buy_time BIGINT,
+        algo2_sell_time BIGINT,
+        algo3_buy_time BIGINT,
+        algo3_sell_time BIGINT,
         last_updated BIGINT
       )
     `);
+    
+    // Add timestamp columns if they don't exist (for existing databases)
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo1_buy_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo1_sell_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo2_buy_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo2_sell_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo3_buy_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo3_sell_time BIGINT`).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS recent_alerts (
