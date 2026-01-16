@@ -11,7 +11,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ═══════════════════════════════════════════════════════════════════════════
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 10000, // 10 second timeout
+  idleTimeoutMillis: 30000,
+  max: 5 // Limit connections for free tier
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,6 +40,9 @@ const cache = {
     signals: false
   }
 };
+
+// Database connection status
+let dbConnected = false;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -1277,8 +1283,9 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: Date.now(),
-    database: 'supabase',
+    database: dbConnected ? 'connected' : 'disconnected',
     cacheSize: { symbols: cache.symbols.size, alerts: cache.alerts.length },
+    priceHistory: cache.priceHistory.size,
     lastSync: cache.lastSync
   });
 });
@@ -1288,22 +1295,50 @@ app.get('/health', (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 3000;
 
-async function start() {
+async function tryDatabaseConnection() {
   try {
     await initDatabase();
     await loadFromDatabase();
-    
-    setInterval(syncToDatabase, 60 * 1000);
-    console.log('⏰ Database sync scheduled every 1 minute');
-    
-    app.listen(PORT, () => {
-      console.log(`🚀 Trading Dashboard running on port ${PORT}`);
-      console.log('📊 In-memory caching ACTIVE - unlimited reads!');
-      console.log('🗄️ Database: Supabase PostgreSQL');
-    });
+    dbConnected = true;
+    console.log('✅ Database connected and loaded successfully');
+    return true;
   } catch (error) {
-    console.error('Startup error:', error);
+    console.error('⚠️ Database connection failed:', error.message);
+    console.log('📊 Server will run with in-memory cache only');
+    return false;
   }
+}
+
+async function start() {
+  console.log('🚀 Starting Trading Dashboard...');
+  
+  // Try to connect to database, but don't fail if it's unavailable
+  await tryDatabaseConnection();
+  
+  // Schedule database sync (will silently fail if DB unavailable)
+  setInterval(async () => {
+    try {
+      await syncToDatabase();
+    } catch (error) {
+      console.error('⚠️ Database sync failed:', error.message);
+    }
+  }, 60 * 1000);
+  console.log('⏰ Database sync scheduled every 1 minute');
+  
+  // Retry database connection every 5 minutes if not connected
+  setInterval(async () => {
+    if (!dbConnected) {
+      console.log('🔄 Retrying database connection...');
+      await tryDatabaseConnection();
+    }
+  }, 5 * 60 * 1000);
+  
+  // Always start the server
+  app.listen(PORT, () => {
+    console.log(`🚀 Trading Dashboard running on port ${PORT}`);
+    console.log('📊 In-memory caching ACTIVE - unlimited reads!');
+    console.log(`🗄️ Database: ${dbConnected ? 'Connected' : 'Unavailable (will retry)'}`);
+  });
 }
 
 start();
