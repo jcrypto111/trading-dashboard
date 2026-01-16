@@ -187,6 +187,10 @@ function updateMomentumCache(symbol, data) {
 
 function updateSupplyDemandCache(symbol, data) {
   const existing = cache.supplydemand.get(symbol) || { demandZones: {}, supplyZones: {} };
+  const now = Date.now();
+  
+  // Sticky duration: rejections stay "active" for 1 hour after firing
+  const STICKY_DURATION = 60 * 60 * 1000; // 1 hour in ms
   
   let demandZones = { ...existing.demandZones };
   let supplyZones = { ...existing.supplyZones };
@@ -210,13 +214,36 @@ function updateSupplyDemandCache(symbol, data) {
   if (data.demandZone !== undefined) demandZones[tf] = data.demandZone;
   if (data.supplyZone !== undefined) supplyZones[tf] = data.supplyZone;
   
+  // Sticky logic for zone rejections
+  const getStickyRejection = (newVal, existingVal, existingTime) => {
+    const incomingTrue = newVal === true || newVal === 'true';
+    
+    if (incomingTrue) {
+      return { value: true, time: now };
+    }
+    
+    if (existingVal && existingTime) {
+      const elapsed = now - existingTime;
+      if (elapsed < STICKY_DURATION) {
+        return { value: true, time: existingTime };
+      }
+    }
+    
+    return { value: false, time: null };
+  };
+  
+  const demandRej = getStickyRejection(data.demand_rejection ?? data.demandRejection, existing.demandRejection, existing.demandRejectionTime);
+  const supplyRej = getStickyRejection(data.supply_rejection ?? data.supplyRejection, existing.supplyRejection, existing.supplyRejectionTime);
+  
   cache.supplydemand.set(symbol, {
     symbol,
     demandZones,
     supplyZones,
-    demandRejection: data.demand_rejection ?? data.demandRejection ?? existing.demandRejection,
-    supplyRejection: data.supply_rejection ?? data.supplyRejection ?? existing.supplyRejection,
-    lastUpdated: Date.now()
+    demandRejection: demandRej.value,
+    demandRejectionTime: demandRej.time,
+    supplyRejection: supplyRej.value,
+    supplyRejectionTime: supplyRej.time,
+    lastUpdated: now
   });
   
   cache.dirty.supplydemand.add(symbol);
@@ -233,7 +260,7 @@ function updateMultiAlgoCache(symbol, data) {
   const toBool = (val) => val === 1 || val === "1" || val === true;
   
   // Get sticky value - if new signal is true, update timestamp. If false, check if still within sticky period
-  const getStickyValue = (newVal, existingVal, existingTime, fieldName) => {
+  const getStickyValue = (newVal, existingVal, existingTime) => {
     const incomingTrue = toBool(newVal);
     
     if (incomingTrue) {
@@ -262,14 +289,16 @@ function updateMultiAlgoCache(symbol, data) {
   const algo3Buy = getStickyValue(data.algo3Buy ?? data.algo3_buy, existing.algo3Buy, existing.algo3BuyTime);
   const algo3Sell = getStickyValue(data.algo3Sell ?? data.algo3_sell, existing.algo3Sell, existing.algo3SellTime);
   
-  // Dots (OB/OS) don't need to be sticky - they reflect current state
-  const dotsGreen = toBool(data.dotsGreen ?? data.dots_green);
-  const dotsRed = toBool(data.dotsRed ?? data.dots_red);
+  // OB/OS (dots) are also sticky now
+  const dotsGreen = getStickyValue(data.dotsGreen ?? data.dots_green, existing.dotsGreen, existing.dotsGreenTime);
+  const dotsRed = getStickyValue(data.dotsRed ?? data.dots_red, existing.dotsRed, existing.dotsRedTime);
   
   cache.multialgo.set(symbol, {
     symbol,
-    dotsGreen,
-    dotsRed,
+    dotsGreen: dotsGreen.value,
+    dotsGreenTime: dotsGreen.time,
+    dotsRed: dotsRed.value,
+    dotsRedTime: dotsRed.time,
     algo1Buy: algo1Buy.value,
     algo1BuyTime: algo1Buy.time,
     algo1Sell: algo1Sell.value,
@@ -383,15 +412,17 @@ async function syncToDatabase() {
       const data = cache.supplydemand.get(symbol);
       if (data) {
         await client.query(`
-          INSERT INTO supplydemand_data (symbol, demand_zones_json, supply_zones_json, demand_rejection, supply_rejection, last_updated)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO supplydemand_data (symbol, demand_zones_json, supply_zones_json, demand_rejection, supply_rejection, demand_rejection_time, supply_rejection_time, last_updated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           ON CONFLICT (symbol) DO UPDATE SET
             demand_zones_json = EXCLUDED.demand_zones_json,
             supply_zones_json = EXCLUDED.supply_zones_json,
             demand_rejection = EXCLUDED.demand_rejection,
             supply_rejection = EXCLUDED.supply_rejection,
+            demand_rejection_time = EXCLUDED.demand_rejection_time,
+            supply_rejection_time = EXCLUDED.supply_rejection_time,
             last_updated = EXCLUDED.last_updated
-        `, [symbol, JSON.stringify(data.demandZones), JSON.stringify(data.supplyZones), data.demandRejection, data.supplyRejection, data.lastUpdated]);
+        `, [symbol, JSON.stringify(data.demandZones), JSON.stringify(data.supplyZones), data.demandRejection, data.supplyRejection, data.demandRejectionTime, data.supplyRejectionTime, data.lastUpdated]);
         syncCount++;
       }
     }
@@ -402,11 +433,13 @@ async function syncToDatabase() {
       const data = cache.multialgo.get(symbol);
       if (data) {
         await client.query(`
-          INSERT INTO multialgo_data (symbol, dots_green, dots_red, algo1_buy, algo1_sell, algo2_buy, algo2_sell, algo3_buy, algo3_sell, algo1_buy_time, algo1_sell_time, algo2_buy_time, algo2_sell_time, algo3_buy_time, algo3_sell_time, last_updated)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          INSERT INTO multialgo_data (symbol, dots_green, dots_red, dots_green_time, dots_red_time, algo1_buy, algo1_sell, algo2_buy, algo2_sell, algo3_buy, algo3_sell, algo1_buy_time, algo1_sell_time, algo2_buy_time, algo2_sell_time, algo3_buy_time, algo3_sell_time, last_updated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
           ON CONFLICT (symbol) DO UPDATE SET
             dots_green = EXCLUDED.dots_green,
             dots_red = EXCLUDED.dots_red,
+            dots_green_time = EXCLUDED.dots_green_time,
+            dots_red_time = EXCLUDED.dots_red_time,
             algo1_buy = EXCLUDED.algo1_buy,
             algo1_sell = EXCLUDED.algo1_sell,
             algo2_buy = EXCLUDED.algo2_buy,
@@ -420,7 +453,7 @@ async function syncToDatabase() {
             algo3_buy_time = EXCLUDED.algo3_buy_time,
             algo3_sell_time = EXCLUDED.algo3_sell_time,
             last_updated = EXCLUDED.last_updated
-        `, [symbol, data.dotsGreen, data.dotsRed, data.algo1Buy, data.algo1Sell, data.algo2Buy, data.algo2Sell, data.algo3Buy, data.algo3Sell, data.algo1BuyTime, data.algo1SellTime, data.algo2BuyTime, data.algo2SellTime, data.algo3BuyTime, data.algo3SellTime, data.lastUpdated]);
+        `, [symbol, data.dotsGreen, data.dotsRed, data.dotsGreenTime, data.dotsRedTime, data.algo1Buy, data.algo1Sell, data.algo2Buy, data.algo2Sell, data.algo3Buy, data.algo3Sell, data.algo1BuyTime, data.algo1SellTime, data.algo2BuyTime, data.algo2SellTime, data.algo3BuyTime, data.algo3SellTime, data.lastUpdated]);
         syncCount++;
       }
     }
@@ -517,6 +550,8 @@ async function loadFromDatabase() {
         supplyZones: JSON.parse(row.supply_zones_json || '{}'),
         demandRejection: row.demand_rejection,
         supplyRejection: row.supply_rejection,
+        demandRejectionTime: row.demand_rejection_time ? parseInt(row.demand_rejection_time) : null,
+        supplyRejectionTime: row.supply_rejection_time ? parseInt(row.supply_rejection_time) : null,
         lastUpdated: parseInt(row.last_updated)
       });
     }
@@ -529,6 +564,8 @@ async function loadFromDatabase() {
         symbol: row.symbol,
         dotsGreen: row.dots_green,
         dotsRed: row.dots_red,
+        dotsGreenTime: row.dots_green_time ? parseInt(row.dots_green_time) : null,
+        dotsRedTime: row.dots_red_time ? parseInt(row.dots_red_time) : null,
         algo1Buy: row.algo1_buy,
         algo1Sell: row.algo1_sell,
         algo2Buy: row.algo2_buy,
@@ -628,15 +665,23 @@ async function initDatabase() {
         supply_zones_json TEXT,
         demand_rejection BOOLEAN,
         supply_rejection BOOLEAN,
+        demand_rejection_time BIGINT,
+        supply_rejection_time BIGINT,
         last_updated BIGINT
       )
     `);
+    
+    // Add timestamp columns if they don't exist
+    await client.query(`ALTER TABLE supplydemand_data ADD COLUMN IF NOT EXISTS demand_rejection_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE supplydemand_data ADD COLUMN IF NOT EXISTS supply_rejection_time BIGINT`).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS multialgo_data (
         symbol TEXT PRIMARY KEY,
         dots_green BOOLEAN,
         dots_red BOOLEAN,
+        dots_green_time BIGINT,
+        dots_red_time BIGINT,
         algo1_buy BOOLEAN,
         algo1_sell BOOLEAN,
         algo2_buy BOOLEAN,
@@ -654,6 +699,8 @@ async function initDatabase() {
     `);
     
     // Add timestamp columns if they don't exist (for existing databases)
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS dots_green_time BIGINT`).catch(() => {});
+    await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS dots_red_time BIGINT`).catch(() => {});
     await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo1_buy_time BIGINT`).catch(() => {});
     await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo1_sell_time BIGINT`).catch(() => {});
     await client.query(`ALTER TABLE multialgo_data ADD COLUMN IF NOT EXISTS algo2_buy_time BIGINT`).catch(() => {});
