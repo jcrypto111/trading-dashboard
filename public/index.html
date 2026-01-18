@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Dashboard v2.4</title>
+  <title>Trading Dashboard v2.6</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://s3.tradingview.com/tv.js"></script>
   <style>
@@ -60,6 +60,12 @@
           <button onclick="setSection('crypto')" id="sectionCrypto" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Crypto</button>
           <button onclick="setSection('stocks')" id="sectionStocks" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Stocks</button>
           <button onclick="setSection('forex')" id="sectionForex" class="section-btn px-3 py-1 text-sm rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Forex</button>
+        </div>
+        <!-- Symbol Search -->
+        <div class="ml-4">
+          <input type="text" id="symbolSearch" placeholder="🔍 Search symbol..." 
+            class="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
+            oninput="filterBySearch()" onkeydown="if(event.key==='Escape'){this.value='';filterBySearch();}">
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -420,11 +426,20 @@
               <option value="none">None Required</option>
               <option value="bias" selected>Bullish Bias</option>
               <option value="1m">Bullish 1m</option>
+              <option value="3m">Bullish 3m</option>
+              <option value="5m">Bullish 5m</option>
               <option value="15m">Bullish 15m</option>
+              <option value="30m">Bullish 30m</option>
               <option value="1h">Bullish 1H</option>
               <option value="4h">Bullish 4H</option>
               <option value="12h">Bullish 12H</option>
               <option value="1d">Bullish 1D</option>
+              <option value="1w">Bullish 1W</option>
+            </select>
+            <select id="longMssBosType" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="any" selected>MSS or BOS</option>
+              <option value="mss">MSS Only</option>
+              <option value="bos">BOS Only</option>
             </select>
           </div>
           <div class="flex items-center gap-2">
@@ -479,11 +494,20 @@
               <option value="none">None Required</option>
               <option value="bias" selected>Bearish Bias</option>
               <option value="1m">Bearish 1m</option>
+              <option value="3m">Bearish 3m</option>
+              <option value="5m">Bearish 5m</option>
               <option value="15m">Bearish 15m</option>
+              <option value="30m">Bearish 30m</option>
               <option value="1h">Bearish 1H</option>
               <option value="4h">Bearish 4H</option>
               <option value="12h">Bearish 12H</option>
               <option value="1d">Bearish 1D</option>
+              <option value="1w">Bearish 1W</option>
+            </select>
+            <select id="shortMssBosType" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+              <option value="any" selected>MSS or BOS</option>
+              <option value="mss">MSS Only</option>
+              <option value="bos">BOS Only</option>
             </select>
           </div>
           <div class="flex items-center gap-2">
@@ -578,8 +602,8 @@
   </div>
 
   <!-- Symbol Detail Modal -->
-  <div id="detailModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+  <div id="detailModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-2">
+    <div class="bg-gray-800 rounded-lg w-full max-w-7xl h-[95vh] overflow-hidden flex flex-col">
       <div class="p-4 border-b border-gray-700 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <h2 id="detailSymbol" class="text-xl font-bold">BTCUSDT</h2>
@@ -632,6 +656,13 @@
         active.classList.remove('bg-gray-700', 'text-gray-300');
         active.classList.add('bg-blue-600', 'text-white');
       }
+      applyFilters();
+    }
+
+    // Symbol Search
+    let searchTerm = '';
+    function filterBySearch() {
+      searchTerm = (document.getElementById('symbolSearch').value || '').toUpperCase().trim();
       applyFilters();
     }
 
@@ -813,6 +844,8 @@
     function applyFilters() {
       const f = getFilters();
       filteredData = dashboardData.filter(item => {
+        // Search filter
+        if (searchTerm && !item.symbol.toUpperCase().includes(searchTerm)) return false;
         // Section filter (All/Crypto/Stocks/Forex)
         if (currentSection !== 'all') {
           const itemSection = (item.section || 'Other').toLowerCase();
@@ -852,6 +885,7 @@
         return {
           zoneTF: document.getElementById('longZoneTF').value,
           mssbos: document.getElementById('longMssBos').value,
+          mssbosType: document.getElementById('longMssBosType').value,
           obos: document.getElementById('longObOs').value,
           caution: document.getElementById('longCaution').value,
           algo: document.getElementById('longAlgo').value
@@ -860,6 +894,7 @@
         return {
           zoneTF: document.getElementById('shortZoneTF').value,
           mssbos: document.getElementById('shortMssBos').value,
+          mssbosType: document.getElementById('shortMssBosType').value,
           obos: document.getElementById('shortObOs').value,
           caution: document.getElementById('shortCaution').value,
           algo: document.getElementById('shortAlgo').value
@@ -885,7 +920,16 @@
           if (c.mssbos === 'bias') {
             if (item.mssbos?.bias !== targetBias) return false;
           } else {
-            if (item.mssbos?.timeframes?.[c.mssbos]?.direction !== targetBias) return false;
+            const tfData = item.mssbos?.timeframes?.[c.mssbos];
+            const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null);
+            if (dir !== targetBias) return false;
+            
+            // Check signal type if specified
+            if (c.mssbosType !== 'any') {
+              const signalType = (tfData?.signalType || '').toUpperCase();
+              if (c.mssbosType === 'mss' && signalType !== 'MSS') return false;
+              if (c.mssbosType === 'bos' && signalType !== 'BOS') return false;
+            }
           }
         }
         
@@ -1181,7 +1225,28 @@
     function renderMssBos(m) {
       if (!m) return '<span class="text-gray-500">-</span>';
       const cls = m.bias === 'BULL' ? 'badge-bull' : m.bias === 'BEAR' ? 'badge-bear' : 'badge-neutral';
-      return `<span class="badge ${cls}">${m.bias || 'N/A'}</span> <span class="text-xs text-gray-400">${m.bullCount}↑${m.bearCount}↓</span>`;
+      
+      // Show signal types for recent timeframes - ONLY show if signalType is MSS or BOS
+      let signalDetails = [];
+      if (m.timeframes) {
+        // Show up to 2 most significant signals (4h, 1h, 15m priority)
+        const priorityTFs = ['4h', '1h', '15m', '30m', '5m', '12h', '1d', '1w', '3m', '1m'];
+        for (const tf of priorityTFs) {
+          const tfData = m.timeframes[tf];
+          if (tfData && signalDetails.length < 2) {
+            const dir = tfData.direction || (typeof tfData === 'string' ? tfData : null);
+            const signalType = (tfData.signalType || '').toUpperCase();
+            // Only show if we have a valid signal type (MSS or BOS)
+            if (dir && (signalType === 'MSS' || signalType === 'BOS')) {
+              const color = dir === 'BULL' ? 'text-green-400' : 'text-red-400';
+              signalDetails.push(`<span class="${color}" title="${tf} ${dir} ${signalType}">${signalType}:${tf}</span>`);
+            }
+          }
+        }
+      }
+      
+      const details = signalDetails.length ? ` ${signalDetails.join(' ')}` : '';
+      return `<span class="badge ${cls}">${m.bias || 'N/A'}</span>${details} <span class="text-xs text-gray-400">${m.bullCount || 0}↑${m.bearCount || 0}↓</span>`;
     }
 
     function renderZone(sd) {
@@ -1238,12 +1303,42 @@
       document.getElementById('detailModal').classList.remove('hidden');
       const tvContainer = document.getElementById('tvChart');
       tvContainer.innerHTML = '';
-      new TradingView.widget({ container_id: 'tvChart', symbol: `BINANCE:${symbol}`, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: 384, width: '100%' });
+      
+      // Try to determine the best exchange for the symbol
+      let tvSymbol = symbol;
+      if (symbol.endsWith('USDT') || symbol.endsWith('USD')) {
+        // Try Binance first, but TradingView widget allows symbol change if not found
+        tvSymbol = `BINANCE:${symbol}`;
+      }
+      new TradingView.widget({ container_id: 'tvChart', symbol: tvSymbol, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: 500, width: '100%' });
+      
+      // Build MSS/BOS display with signal types - ONLY show MSS or BOS, never arrows
+      let mssbosHtml = '<p class="text-gray-500">No data</p>';
+      if (item.mssbos) {
+        const cells = TIMEFRAMES.map(tf => {
+          const tfData = item.mssbos.timeframes?.[tf];
+          const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null);
+          const signalType = (tfData?.signalType || '').toUpperCase();
+          const bgColor = dir === 'BULL' ? 'bg-green-600/40' : dir === 'BEAR' ? 'bg-red-600/40' : 'bg-gray-700';
+          const textColor = dir === 'BULL' ? 'text-green-400' : dir === 'BEAR' ? 'text-red-400' : 'text-gray-500';
+          // Only show MSS or BOS text, otherwise show dash
+          const label = (signalType === 'MSS' || signalType === 'BOS') ? signalType : (dir ? '-' : '-');
+          return `<div class="flex flex-col items-center p-1 rounded ${bgColor}">
+            <span class="text-xs text-gray-400">${tf}</span>
+            <span class="${textColor} font-bold text-sm">${label}</span>
+          </div>`;
+        }).join('');
+        const biasColor = item.mssbos.bias === 'BULL' ? 'text-green-400' : item.mssbos.bias === 'BEAR' ? 'text-red-400' : 'text-gray-400';
+        mssbosHtml = `<div class="grid grid-cols-10 gap-1">${cells}</div>
+          <p class="text-sm mt-3">Overall Bias: <span class="${biasColor} font-bold">${item.mssbos.bias || 'N/A'}</span> 
+          <span class="text-gray-400">(${item.mssbos.bullCount || 0} Bullish, ${item.mssbos.bearCount || 0} Bearish)</span></p>`;
+      }
+      
       document.getElementById('detailContent').innerHTML = `
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">MSS/BOS Analysis</h3>${item.mssbos ? `<div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => { const tfData = item.mssbos.timeframes?.[tf]; const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null); const signalType = tfData?.signalType || ''; const cls = dir === 'BULL' ? 'tf-bull' : dir === 'BEAR' ? 'tf-bear' : 'tf-none'; const label = signalType ? signalType : tf; return `<div class="tf-cell ${cls}" title="${dir || 'No signal'} ${signalType}">${label}</div>`; }).join('')}</div><p class="text-xs text-gray-400 mt-2">Bias: <span class="${item.mssbos.bias === 'BULL' ? 'text-green-400' : item.mssbos.bias === 'BEAR' ? 'text-red-400' : 'text-gray-400'}">${item.mssbos.bias || 'N/A'}</span> (${item.mssbos.bullCount || 0}↑ ${item.mssbos.bearCount || 0}↓)</p>` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution (${item.momentum.cautionCount || 0})</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? 'BUY' : item.multialgo.algo1Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? 'BUY' : item.multialgo.algo2Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? 'BUY' : item.multialgo.algo3Sell ? 'SELL' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-cyan-400">MSS/BOS Analysis</h3>${mssbosHtml}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-blue-400">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand (price inside zone)</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply (price inside zone)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>${item.supplydemand.demandRejection ? '<p class="text-green-400 text-sm mt-2">✓ Demand Rejection Active</p>' : ''}${item.supplydemand.supplyRejection ? '<p class="text-red-400 text-sm mt-2">✓ Supply Rejection Active</p>' : ''}` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-yellow-400">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution Signals (${item.momentum.cautionCount || 0} active)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-purple-400">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20 border border-green-500' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20 border border-red-500' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo1Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo2Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo3Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
     }
 
     function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
@@ -1400,6 +1495,11 @@
       // Filter data - must have MSS/BOS data
       let data = dashboardData.filter(item => item.mssbos?.timeframes);
       
+      // Apply search filter
+      if (searchTerm) {
+        data = data.filter(item => item.symbol.toUpperCase().includes(searchTerm));
+      }
+      
       // Apply section filter
       if (currentSection !== 'all') {
         data = data.filter(item => (item.section || 'Other').toLowerCase() === currentSection.toLowerCase());
@@ -1449,12 +1549,14 @@
         const renderTfCell = (tf) => {
           const tfData = tfs[tf];
           const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null);
-          const signalType = tfData?.signalType || '';
+          const signalType = (tfData?.signalType || '').toUpperCase();
+          // Only show MSS or BOS text, otherwise show dash
+          const label = (signalType === 'MSS' || signalType === 'BOS') ? signalType : '-';
           
           if (dir === 'BULL') {
-            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-green-600/30 text-green-400" title="${signalType || 'BULL'}">${signalType || '↑'}</span></td>`;
+            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-green-600/30 text-green-400" title="${tf} BULL ${signalType}">${label}</span></td>`;
           } else if (dir === 'BEAR') {
-            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-red-600/30 text-red-400" title="${signalType || 'BEAR'}">${signalType || '↓'}</span></td>`;
+            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-red-600/30 text-red-400" title="${tf} BEAR ${signalType}">${label}</span></td>`;
           }
           return `<td class="px-2 py-2 text-center"><span class="text-gray-600">-</span></td>`;
         };
