@@ -92,6 +92,13 @@ function recordPriceHistory(symbol, price) {
   const now = Date.now();
   let history = cache.priceHistory.get(symbol) || [];
   
+  // Only add a new point if at least 1 minute has passed since the last one
+  // This prevents excessive database writes while still tracking price changes
+  const lastPoint = history[history.length - 1];
+  if (lastPoint && (now - lastPoint.timestamp) < 60000) {
+    return; // Skip if less than 1 minute since last point
+  }
+  
   // Add new price point
   history.push({ price, timestamp: now });
   
@@ -198,13 +205,26 @@ function updateMssBosCache(symbol, data) {
   
   let timeframes = { ...existing.timeframes };
   
-  // Handle bulk format: timeframes: {1m: "BULL", 3m: "BEAR", ...}
+  // Handle bulk format: timeframes: {1m: "BULL", 3m: "BEAR", ...} or {1m: {direction: "BULL", signalType: "MSS"}, ...}
   if (data.timeframes && typeof data.timeframes === 'object') {
-    for (const [tf, direction] of Object.entries(data.timeframes)) {
-      timeframes[tf.toLowerCase()] = {
-        direction: direction,
-        timestamp: Date.now()
-      };
+    for (const [tf, value] of Object.entries(data.timeframes)) {
+      const tfKey = tf.toLowerCase();
+      if (typeof value === 'string') {
+        // Simple format: timeframes: {1m: "BULL"}
+        timeframes[tfKey] = {
+          direction: value,
+          signalType: existing.timeframes?.[tfKey]?.signalType, // Preserve existing signalType
+          timestamp: Date.now()
+        };
+      } else if (typeof value === 'object') {
+        // Complex format: timeframes: {1m: {direction: "BULL", signalType: "MSS"}}
+        timeframes[tfKey] = {
+          direction: value.direction || value.bias,
+          signalType: value.signalType || value.signal_type || existing.timeframes?.[tfKey]?.signalType,
+          price: value.price,
+          timestamp: Date.now()
+        };
+      }
     }
   }
   
@@ -571,6 +591,37 @@ async function syncToDatabase() {
       syncCount += newAlerts.length;
     }
     
+    // Sync price history - save recent points (last 5 minutes of data)
+    const fiveMinAgo = Date.now() - (5 * 60 * 1000);
+    let priceHistorySaved = 0;
+    for (const [symbol, history] of cache.priceHistory) {
+      const recentPoints = history.filter(p => p.timestamp > fiveMinAgo);
+      for (const point of recentPoints) {
+        try {
+          await client.query(`
+            INSERT INTO price_history (symbol, price, timestamp)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (symbol, timestamp) DO NOTHING
+          `, [symbol, point.price, point.timestamp]);
+          priceHistorySaved++;
+        } catch (e) {
+          // Ignore duplicate entries
+        }
+      }
+    }
+    if (priceHistorySaved > 0) {
+      console.log(`  Saved ${priceHistorySaved} price history points`);
+    }
+    
+    // Clean up old price history (older than 8 days) - run occasionally
+    if (Math.random() < 0.1) { // 10% chance each sync (roughly once every 10 minutes)
+      const oldCutoff = Date.now() - (8 * 24 * 60 * 60 * 1000);
+      const deleteResult = await client.query('DELETE FROM price_history WHERE timestamp < $1', [oldCutoff]);
+      if (deleteResult.rowCount > 0) {
+        console.log(`  Cleaned up ${deleteResult.rowCount} old price history records`);
+      }
+    }
+    
     cache.lastSync = Date.now();
     console.log(`✅ Database sync complete: ${syncCount} records in ${Date.now() - startTime}ms`);
     
@@ -697,6 +748,24 @@ async function loadFromDatabase() {
       show_in_panel: row.show_in_panel
     }));
     console.log(`  Loaded ${cache.alerts.length} alerts`);
+    
+    // Load price history (last 8 days)
+    const cutoffTime = Date.now() - (8 * 24 * 60 * 60 * 1000);
+    const priceHistory = await client.query(
+      'SELECT symbol, price, timestamp FROM price_history WHERE timestamp > $1 ORDER BY symbol, timestamp',
+      [cutoffTime]
+    );
+    for (const row of priceHistory.rows) {
+      const symbol = row.symbol;
+      if (!cache.priceHistory.has(symbol)) {
+        cache.priceHistory.set(symbol, []);
+      }
+      cache.priceHistory.get(symbol).push({
+        price: parseFloat(row.price),
+        timestamp: parseInt(row.timestamp)
+      });
+    }
+    console.log(`  Loaded ${priceHistory.rows.length} price history points for ${cache.priceHistory.size} symbols`);
     
     console.log('✅ Database load complete');
     
@@ -829,6 +898,22 @@ async function initDatabase() {
         sound_enabled BOOLEAN DEFAULT false
       )
     `);
+    
+    // Price history table for percentage calculations
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS price_history (
+        symbol TEXT NOT NULL,
+        price DECIMAL NOT NULL,
+        timestamp BIGINT NOT NULL,
+        PRIMARY KEY (symbol, timestamp)
+      )
+    `);
+    
+    // Create index for faster lookups
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_price_history_symbol_time 
+      ON price_history (symbol, timestamp DESC)
+    `).catch(() => {});
     
     console.log('✅ Database schema ready');
     
