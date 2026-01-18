@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Dashboard v2.3</title>
+  <title>Trading Dashboard v2.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://s3.tradingview.com/tv.js"></script>
   <style>
@@ -36,6 +36,11 @@
     .table-row:hover { background: rgba(255,255,255,0.03); }
     .custom-check { accent-color: #3b82f6; }
     select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
+    
+    .sort-indicator { font-size: 10px; color: #60a5fa; }
+    .sort-indicator::after { content: ''; }
+    .sort-indicator.asc::after { content: ' ▲'; }
+    .sort-indicator.desc::after { content: ' ▼'; }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
@@ -279,6 +284,46 @@
         <button onclick="switchTab('algo')" id="tabAlgo" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🤖 Algo Signals</button>
         <button onclick="switchTab('obos')" id="tabObos" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🔴🟢 OB/OS</button>
         <button onclick="switchTab('zones')" id="tabZones" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">🎯 Zone Rejections</button>
+        <button onclick="switchTab('mssbos')" id="tabMssbos" class="tab px-4 py-2.5 text-sm border-b-2 border-transparent text-gray-400">📊 MSS/BOS</button>
+      </div>
+      
+      <!-- MSS/BOS Criteria Panel -->
+      <div id="mssbosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="text-sm font-medium text-cyan-400">📊 MSS/BOS Filter:</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Primary TF:</span>
+            <select id="mssbosTimeframe" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="1w">1W</option>
+              <option value="1d">1D</option>
+              <option value="12h">12H</option>
+              <option value="4h" selected>4H</option>
+              <option value="1h">1H</option>
+              <option value="30m">30M</option>
+              <option value="15m">15M</option>
+              <option value="5m">5M</option>
+              <option value="3m">3M</option>
+              <option value="1m">1M</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Direction:</span>
+            <select id="mssbosDirection" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="all">All</option>
+              <option value="bull">Bullish Only</option>
+              <option value="bear">Bearish Only</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Sort:</span>
+            <select id="mssbosSort" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+              <option value="bullish">Most Bullish First</option>
+              <option value="bearish">Most Bearish First</option>
+              <option value="symbol">Symbol A-Z</option>
+            </select>
+          </div>
+          <div class="text-xs text-gray-500 ml-4">Click column headers to filter by that timeframe</div>
+        </div>
       </div>
       
       <!-- Algo Signals Sub-Tabs Panel -->
@@ -472,21 +517,21 @@
       </div>
       
       <!-- Table Area -->
-      <div class="flex-1 overflow-auto">
+      <div id="mainTableContainer" class="flex-1 overflow-auto">
         <table class="w-full text-sm">
           <thead class="bg-gray-900 sticky top-0 z-10">
             <tr class="text-left text-xs text-gray-400">
-              <th class="px-3 py-2 font-medium">Symbol</th>
-              <th class="px-3 py-2 font-medium">Price</th>
-              <th class="px-3 py-2 font-medium">1h %</th>
-              <th class="px-3 py-2 font-medium">24h %</th>
-              <th class="px-3 py-2 font-medium">1w %</th>
-              <th class="px-3 py-2 font-medium">MSS/BOS</th>
-              <th class="px-3 py-2 font-medium">Zone</th>
-              <th class="px-3 py-2 font-medium">Caution</th>
-              <th class="px-3 py-2 font-medium">OB/OS</th>
-              <th class="px-3 py-2 font-medium">Algo</th>
-              <th class="px-3 py-2 font-medium">Updated</th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('symbol')">Symbol <span id="sort-symbol" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('price')">Price <span id="sort-price" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('change1h')">1h % <span id="sort-change1h" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('change24h')">24h % <span id="sort-change24h" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('change1w')">1w % <span id="sort-change1w" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('mssbos')">MSS/BOS <span id="sort-mssbos" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('zone')">Zone <span id="sort-zone" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('caution')">Caution <span id="sort-caution" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('obos')">OB/OS <span id="sort-obos" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('algo')">Algo <span id="sort-algo" class="sort-indicator"></span></th>
+              <th class="px-3 py-2 font-medium cursor-pointer hover:bg-gray-700 select-none" onclick="sortByColumn('updated')">Updated <span id="sort-updated" class="sort-indicator"></span></th>
               <th class="px-3 py-2 font-medium">Links</th>
             </tr>
           </thead>
@@ -499,6 +544,34 @@
         <div id="noDataState" class="hidden py-16 text-center text-gray-500">
           <p class="text-lg">No matches found</p>
           <p class="text-sm mt-1">Try adjusting your filters</p>
+        </div>
+      </div>
+      
+      <!-- MSS/BOS Grid View -->
+      <div id="mssbosGridContainer" class="flex-1 overflow-auto hidden">
+        <table class="w-full text-sm" id="mssbosTable">
+          <thead class="bg-gray-900 sticky top-0 z-10">
+            <tr class="text-left text-xs text-gray-400">
+              <th class="px-3 py-2 font-medium sticky left-0 bg-gray-900 z-20">Symbol</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('1m')">1m</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('3m')">3m</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('5m')">5m</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('15m')">15m</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('30m')">30m</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('1h')">1h</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('4h')">4h</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('12h')">12h</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('1d')">1d</th>
+              <th class="px-2 py-2 font-medium text-center cursor-pointer hover:bg-gray-700" onclick="filterMssbosByTf('1w')">1w</th>
+              <th class="px-3 py-2 font-medium text-center">Score</th>
+              <th class="px-3 py-2 font-medium">Links</th>
+            </tr>
+          </thead>
+          <tbody id="mssbosGridBody" class="divide-y divide-gray-800"></tbody>
+        </table>
+        <div id="mssbosEmptyState" class="hidden py-16 text-center text-gray-500">
+          <p class="text-lg">No MSS/BOS data</p>
+          <p class="text-sm mt-1">Waiting for webhooks from TradingView...</p>
         </div>
       </div>
     </main>
@@ -542,6 +615,8 @@
     let currentSection = 'all';
     let alertSettings = [];
     let autoRefreshInterval = null;
+    let currentSortColumn = null;
+    let currentSortDirection = 'desc'; // 'asc' or 'desc'
     const API = window.location.origin;
     const TIMEFRAMES = ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '12h', '1d', '1w'];
 
@@ -622,6 +697,90 @@
       return cautions && timeframes.some(tf => cautions[tf]);
     }
 
+    // Sorting
+    function sortByColumn(column) {
+      // Toggle direction if same column, otherwise default to desc
+      if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = column;
+        currentSortDirection = 'desc';
+      }
+      updateSortIndicators();
+      renderTable();
+    }
+
+    function updateSortIndicators() {
+      // Clear all indicators
+      document.querySelectorAll('.sort-indicator').forEach(el => {
+        el.classList.remove('asc', 'desc');
+      });
+      // Set active indicator
+      if (currentSortColumn) {
+        const indicator = document.getElementById(`sort-${currentSortColumn}`);
+        if (indicator) {
+          indicator.classList.add(currentSortDirection);
+        }
+      }
+    }
+
+    function getSortValue(item, column) {
+      switch (column) {
+        case 'symbol': return item.symbol || '';
+        case 'price': return item.price || 0;
+        case 'change1h': return item.priceChange1h ?? -Infinity;
+        case 'change24h': return item.priceChange24h ?? -Infinity;
+        case 'change1w': return item.priceChange1w ?? -Infinity;
+        case 'mssbos': 
+          // Sort by bull count - bear count
+          return (item.mssbos?.bullCount || 0) - (item.mssbos?.bearCount || 0);
+        case 'zone':
+          // Count active zones
+          const dz = item.supplydemand?.demandZones || {};
+          const sz = item.supplydemand?.supplyZones || {};
+          return Object.values(dz).filter(Boolean).length + Object.values(sz).filter(Boolean).length;
+        case 'caution': return item.momentum?.cautionCount || 0;
+        case 'obos':
+          // OB = 1, OS = -1, both = 2, none = 0
+          let obosScore = 0;
+          if (item.multialgo?.dotsGreen) obosScore += 1;
+          if (item.multialgo?.dotsRed) obosScore += 1;
+          return obosScore;
+        case 'algo':
+          // Count active algo signals
+          let algoCount = 0;
+          if (item.multialgo?.algo1Buy || item.multialgo?.algo1Sell) algoCount++;
+          if (item.multialgo?.algo2Buy || item.multialgo?.algo2Sell) algoCount++;
+          if (item.multialgo?.algo3Buy || item.multialgo?.algo3Sell) algoCount++;
+          return algoCount;
+        case 'updated': return item.lastUpdated || 0;
+        default: return 0;
+      }
+    }
+
+    function sortData(data) {
+      if (!currentSortColumn) return data;
+      
+      return [...data].sort((a, b) => {
+        let aVal = getSortValue(a, currentSortColumn);
+        let bVal = getSortValue(b, currentSortColumn);
+        
+        // Handle string comparison
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return currentSortDirection === 'asc' 
+            ? aVal.localeCompare(bVal) 
+            : bVal.localeCompare(aVal);
+        }
+        
+        // Handle numeric comparison
+        if (currentSortDirection === 'asc') {
+          return aVal - bVal;
+        } else {
+          return bVal - aVal;
+        }
+      });
+    }
+
     // Filtering
     function getFilters() {
       return {
@@ -680,7 +839,11 @@
         if (f.algo3Sell && !item.multialgo?.algo3Sell) return false;
         return true;
       });
-      renderTable();
+      if (currentTab === 'mssbos') {
+        renderMssBosGrid();
+      } else {
+        renderTable();
+      }
     }
 
     // Get Longs/Shorts based on custom criteria
@@ -969,6 +1132,9 @@
       else if (currentTab === 'obos') { data = filterObosSignals(dashboardData); }
       else if (currentTab === 'zones') { data = filterZoneRejections(dashboardData); }
 
+      // Apply sorting
+      data = sortData(data);
+
       if (dashboardData.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); noData.classList.add('hidden'); return; }
       if (data.length === 0) { tbody.innerHTML = ''; empty.classList.add('hidden'); noData.classList.remove('hidden'); return; }
       empty.classList.add('hidden'); noData.classList.add('hidden');
@@ -1074,13 +1240,21 @@
       tvContainer.innerHTML = '';
       new TradingView.widget({ container_id: 'tvChart', symbol: `BINANCE:${symbol}`, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: 384, width: '100%' });
       document.getElementById('detailContent').innerHTML = `
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">MSS/BOS Analysis</h3>${item.mssbos ? `<div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => { const data = item.mssbos.timeframes?.[tf]; const cls = data?.direction === 'BULL' ? 'tf-bull' : data?.direction === 'BEAR' ? 'tf-bear' : 'tf-none'; return `<div class="tf-cell ${cls}">${tf}</div>`; }).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">MSS/BOS Analysis</h3>${item.mssbos ? `<div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => { const tfData = item.mssbos.timeframes?.[tf]; const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null); const signalType = tfData?.signalType || ''; const cls = dir === 'BULL' ? 'tf-bull' : dir === 'BEAR' ? 'tf-bear' : 'tf-none'; const label = signalType ? signalType : tf; return `<div class="tf-cell ${cls}" title="${dir || 'No signal'} ${signalType}">${label}</div>`; }).join('')}</div><p class="text-xs text-gray-400 mt-2">Bias: <span class="${item.mssbos.bias === 'BULL' ? 'text-green-400' : item.mssbos.bias === 'BEAR' ? 'text-red-400' : 'text-gray-400'}">${item.mssbos.bias || 'N/A'}</span> (${item.mssbos.bullCount || 0}↑ ${item.mssbos.bearCount || 0}↓)</p>` : '<p class="text-gray-500">No data</p>'}</div>
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution (${item.momentum.cautionCount || 0})</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
         <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? 'BUY' : item.multialgo.algo1Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? 'BUY' : item.multialgo.algo2Sell ? 'SELL' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? 'BUY' : item.multialgo.algo3Sell ? 'SELL' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
     }
 
     function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
+
+    // ESC key to close modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetail();
+        document.getElementById('alertSettingsModal').classList.add('hidden');
+      }
+    });
 
     // Alert Settings
     async function openAlertSettings() {
@@ -1121,8 +1295,17 @@
       document.getElementById('algoCriteriaPanel').classList.toggle('hidden', tab !== 'algo');
       document.getElementById('obosCriteriaPanel').classList.toggle('hidden', tab !== 'obos');
       document.getElementById('zonesCriteriaPanel').classList.toggle('hidden', tab !== 'zones');
+      document.getElementById('mssbosCriteriaPanel').classList.toggle('hidden', tab !== 'mssbos');
       
-      renderTable();
+      // Show/hide table vs grid view
+      document.getElementById('mainTableContainer').classList.toggle('hidden', tab === 'mssbos');
+      document.getElementById('mssbosGridContainer').classList.toggle('hidden', tab !== 'mssbos');
+      
+      if (tab === 'mssbos') {
+        renderMssBosGrid();
+      } else {
+        renderTable();
+      }
     }
 
     // OB/OS sub-tab filter
@@ -1171,6 +1354,132 @@
         active.classList.add('bg-purple-600', 'text-white');
       }
       renderTable();
+    }
+
+    // MSS/BOS Grid Functions
+    function filterMssbosByTf(tf) {
+      document.getElementById('mssbosTimeframe').value = tf;
+      renderMssBosGrid();
+    }
+
+    function getMssBosScore(item, primaryTf) {
+      if (!item.mssbos?.timeframes) return { score: 0, bullCount: 0, bearCount: 0 };
+      
+      const tfs = item.mssbos.timeframes;
+      let bullCount = 0;
+      let bearCount = 0;
+      
+      TIMEFRAMES.forEach(tf => {
+        const dir = tfs[tf]?.direction || (typeof tfs[tf] === 'string' ? tfs[tf] : null);
+        if (dir === 'BULL') bullCount++;
+        else if (dir === 'BEAR') bearCount++;
+      });
+      
+      // Score is based on primary TF direction + count of aligned TFs
+      const primaryDir = tfs[primaryTf]?.direction || (typeof tfs[primaryTf] === 'string' ? tfs[primaryTf] : null);
+      let score = 0;
+      
+      if (primaryDir === 'BULL') {
+        score = 100 + bullCount; // Bullish on primary TF gets base 100 + bull count
+      } else if (primaryDir === 'BEAR') {
+        score = -100 - bearCount; // Bearish on primary TF gets base -100 - bear count
+      } else {
+        score = bullCount - bearCount; // No signal on primary TF, just use net count
+      }
+      
+      return { score, bullCount, bearCount, primaryDir };
+    }
+
+    function renderMssBosGrid() {
+      const tbody = document.getElementById('mssbosGridBody');
+      const empty = document.getElementById('mssbosEmptyState');
+      const primaryTf = document.getElementById('mssbosTimeframe').value;
+      const direction = document.getElementById('mssbosDirection').value;
+      const sortOrder = document.getElementById('mssbosSort').value;
+      
+      // Filter data - must have MSS/BOS data
+      let data = dashboardData.filter(item => item.mssbos?.timeframes);
+      
+      // Apply section filter
+      if (currentSection !== 'all') {
+        data = data.filter(item => (item.section || 'Other').toLowerCase() === currentSection.toLowerCase());
+      }
+      
+      // Apply direction filter based on primary timeframe
+      if (direction === 'bull') {
+        data = data.filter(item => {
+          const tfs = item.mssbos.timeframes;
+          const dir = tfs[primaryTf]?.direction || (typeof tfs[primaryTf] === 'string' ? tfs[primaryTf] : null);
+          return dir === 'BULL';
+        });
+      } else if (direction === 'bear') {
+        data = data.filter(item => {
+          const tfs = item.mssbos.timeframes;
+          const dir = tfs[primaryTf]?.direction || (typeof tfs[primaryTf] === 'string' ? tfs[primaryTf] : null);
+          return dir === 'BEAR';
+        });
+      }
+      
+      // Calculate scores and sort
+      data = data.map(item => ({
+        ...item,
+        _mssbosScore: getMssBosScore(item, primaryTf)
+      }));
+      
+      if (sortOrder === 'bullish') {
+        data.sort((a, b) => b._mssbosScore.score - a._mssbosScore.score);
+      } else if (sortOrder === 'bearish') {
+        data.sort((a, b) => a._mssbosScore.score - b._mssbosScore.score);
+      } else {
+        data.sort((a, b) => a.symbol.localeCompare(b.symbol));
+      }
+      
+      if (data.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      
+      // Render grid rows
+      tbody.innerHTML = data.map(item => {
+        const tfs = item.mssbos.timeframes || {};
+        const score = item._mssbosScore;
+        
+        const renderTfCell = (tf) => {
+          const tfData = tfs[tf];
+          const dir = tfData?.direction || (typeof tfData === 'string' ? tfData : null);
+          const signalType = tfData?.signalType || '';
+          
+          if (dir === 'BULL') {
+            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-green-600/30 text-green-400" title="${signalType || 'BULL'}">${signalType || '↑'}</span></td>`;
+          } else if (dir === 'BEAR') {
+            return `<td class="px-2 py-2 text-center"><span class="inline-block w-8 py-1 rounded text-xs font-bold bg-red-600/30 text-red-400" title="${signalType || 'BEAR'}">${signalType || '↓'}</span></td>`;
+          }
+          return `<td class="px-2 py-2 text-center"><span class="text-gray-600">-</span></td>`;
+        };
+        
+        const scoreColor = score.score > 0 ? 'text-green-400' : score.score < 0 ? 'text-red-400' : 'text-gray-400';
+        const scoreDisplay = `${score.bullCount}↑ ${score.bearCount}↓`;
+        
+        return `
+          <tr class="table-row cursor-pointer hover:bg-gray-800/50" onclick="showDetail('${item.symbol}')">
+            <td class="px-3 py-2 sticky left-0 bg-gray-900 z-10"><span class="font-semibold">${item.symbol}</span></td>
+            ${TIMEFRAMES.map(tf => renderTfCell(tf)).join('')}
+            <td class="px-3 py-2 text-center"><span class="${scoreColor} text-xs">${scoreDisplay}</span></td>
+            <td class="px-3 py-2">${renderLinks(item.symbol)}</td>
+          </tr>
+        `;
+      }).join('');
+      
+      // Highlight primary TF column header
+      document.querySelectorAll('#mssbosTable thead th').forEach((th, idx) => {
+        th.classList.remove('bg-cyan-900/50', 'text-cyan-400');
+        const tfIndex = TIMEFRAMES.indexOf(primaryTf);
+        if (idx === tfIndex + 1) { // +1 because first column is Symbol
+          th.classList.add('bg-cyan-900/50', 'text-cyan-400');
+        }
+      });
     }
 
     // Utilities
