@@ -639,8 +639,8 @@
   </div>
 
   <!-- Symbol Detail Modal - FULLSCREEN -->
-  <div id="detailModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-2">
-    <div class="bg-gray-800 rounded-lg w-[98vw] h-[96vh] overflow-hidden flex flex-col">
+  <div id="detailModal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center">
+    <div class="bg-gray-800 w-screen h-screen overflow-hidden flex flex-col">
       <div class="p-3 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-3">
           <h2 id="detailSymbol" class="text-xl font-bold">BTCUSDT</h2>
@@ -649,12 +649,12 @@
         <button onclick="closeDetail()" class="text-gray-400 hover:text-white text-2xl px-2">✕</button>
       </div>
       <div class="flex-1 flex overflow-hidden" style="min-height: 0;">
-        <!-- Left side: Chart - fixed width -->
-        <div style="width: calc(100% - 440px); flex-shrink: 0; padding: 12px;">
+        <!-- Left side: Chart -->
+        <div style="flex: 1; min-width: 0; padding: 12px;">
           <div id="tvChart" style="width: 100%; height: 100%; background: #111827; border-radius: 8px; overflow: hidden;"></div>
         </div>
-        <!-- Right side: Data Panels - fixed width -->
-        <div style="width: 440px; flex-shrink: 0; padding: 12px; overflow-y: auto; border-left: 1px solid #374151;">
+        <!-- Right side: Data Panels -->
+        <div style="width: 480px; flex-shrink: 0; padding: 12px; overflow-y: auto; border-left: 1px solid #374151;">
           <div id="detailContent" class="space-y-3"></div>
         </div>
       </div>
