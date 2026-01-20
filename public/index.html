@@ -648,13 +648,13 @@
         </div>
         <button onclick="closeDetail()" class="text-gray-400 hover:text-white text-2xl px-2">✕</button>
       </div>
-      <div class="flex-1 flex overflow-hidden">
-        <!-- Left side: Chart -->
-        <div class="flex-1 p-3 min-w-0">
-          <div id="tvChart" class="h-full bg-gray-900 rounded-lg"></div>
+      <div class="flex-1 flex overflow-hidden" style="min-height: 0;">
+        <!-- Left side: Chart - fixed width -->
+        <div style="width: calc(100% - 440px); flex-shrink: 0; padding: 12px;">
+          <div id="tvChart" style="width: 100%; height: 100%; background: #111827; border-radius: 8px; overflow: hidden;"></div>
         </div>
-        <!-- Right side: Data Panels -->
-        <div class="w-[420px] flex-shrink-0 p-3 overflow-y-auto border-l border-gray-700">
+        <!-- Right side: Data Panels - fixed width -->
+        <div style="width: 440px; flex-shrink: 0; padding: 12px; overflow-y: auto; border-left: 1px solid #374151;">
           <div id="detailContent" class="space-y-3"></div>
         </div>
       </div>
@@ -1353,7 +1353,7 @@
         // Try Binance first, but TradingView widget allows symbol change if not found
         tvSymbol = `BINANCE:${symbol}`;
       }
-      new TradingView.widget({ container_id: 'tvChart', symbol: tvSymbol, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: '100%', width: '100%' });
+      new TradingView.widget({ container_id: 'tvChart', symbol: tvSymbol, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, autosize: true });
       
       // Build MSS/BOS display with signal types - ONLY show MSS or BOS, never arrows
       let mssbosHtml = '<p class="text-gray-500">No data</p>';
