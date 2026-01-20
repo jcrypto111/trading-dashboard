@@ -35,12 +35,49 @@
     
     .table-row:hover { background: rgba(255,255,255,0.03); }
     .custom-check { accent-color: #3b82f6; }
-    select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
+    
+    /* Fix double arrows on dropdowns */
+    select { 
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); 
+      background-position: right 0.5rem center; 
+      background-repeat: no-repeat; 
+      background-size: 1.5em 1.5em;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      padding-right: 2rem;
+    }
     
     .sort-indicator { font-size: 10px; color: #60a5fa; }
     .sort-indicator::after { content: ''; }
     .sort-indicator.asc::after { content: ' ▲'; }
     .sort-indicator.desc::after { content: ' ▼'; }
+    
+    /* Criteria panel compact styling */
+    .criteria-panel {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .criteria-panel::-webkit-scrollbar { height: 4px; }
+    .criteria-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+    .criteria-label {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+    .criteria-select {
+      font-size: 11px;
+      padding: 2px 1.5rem 2px 6px;
+      min-width: auto;
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
@@ -75,7 +112,7 @@
             <input type="checkbox" id="autoRefreshToggle" class="custom-check" onchange="toggleAutoRefresh()" checked>
             <span>Auto Refresh</span>
           </label>
-          <select id="refreshInterval" onchange="updateRefreshInterval()" class="bg-gray-600 border border-gray-500 rounded px-2 py-0.5 text-sm appearance-none pr-7">
+          <select id="refreshInterval" onchange="updateRefreshInterval()" class="bg-gray-600 border border-gray-500 rounded px-2 py-0.5 text-sm">
             <option value="0">Off</option>
             <option value="15">15s</option>
             <option value="30">30s</option>
@@ -117,7 +154,7 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="fDemand" class="custom-check">
               <span class="text-sm flex-1">In Demand</span>
-              <select id="fDemandTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+              <select id="fDemandTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs">
                 <option value="1m">1m+</option>
                 <option value="3m">3m+</option>
                 <option value="5m">5m+</option>
@@ -133,7 +170,7 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="fSupply" class="custom-check">
               <span class="text-sm flex-1">In Supply</span>
-              <select id="fSupplyTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+              <select id="fSupplyTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs">
                 <option value="1m">1m+</option>
                 <option value="3m">3m+</option>
                 <option value="5m">5m+</option>
@@ -168,7 +205,7 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="fBullTF" class="custom-check">
               <span class="text-sm flex-1">Bullish on</span>
-              <select id="fBullTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+              <select id="fBullTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs">
                 <option value="1m">1m</option>
                 <option value="3m">3m</option>
                 <option value="5m">5m</option>
@@ -184,7 +221,7 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="fBearTF" class="custom-check">
               <span class="text-sm flex-1">Bearish on</span>
-              <select id="fBearTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+              <select id="fBearTFSelect" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs">
                 <option value="1m">1m</option>
                 <option value="3m">3m</option>
                 <option value="5m">5m</option>
@@ -207,7 +244,7 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="fHasCaution" class="custom-check">
               <span class="text-sm flex-1">Has Caution</span>
-              <select id="fCautionTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs appearance-none pr-6">
+              <select id="fCautionTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs">
                 <option value="1m">1m-</option>
                 <option value="3m">3m-</option>
                 <option value="5m">5m-</option>
@@ -294,12 +331,12 @@
       </div>
       
       <!-- MSS/BOS Criteria Panel -->
-      <div id="mssbosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-4 flex-wrap">
-          <span class="text-sm font-medium text-cyan-400">📊 MSS/BOS Filter:</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Primary TF:</span>
-            <select id="mssbosTimeframe" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+      <div id="mssbosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-cyan-400 flex-shrink-0">📊 MSS/BOS Filter:</span>
+          <div class="criteria-item">
+            <span class="criteria-label">Primary TF:</span>
+            <select id="mssbosTimeframe" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="1w">1W</option>
               <option value="1d">1D</option>
               <option value="12h">12H</option>
@@ -312,47 +349,47 @@
               <option value="1m">1M</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Direction:</span>
-            <select id="mssbosDirection" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Direction:</span>
+            <select id="mssbosDirection" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="all">All</option>
               <option value="bull">Bullish Only</option>
               <option value="bear">Bearish Only</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Sort:</span>
-            <select id="mssbosSort" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Sort:</span>
+            <select id="mssbosSort" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="bullish">Most Bullish First</option>
               <option value="bearish">Most Bearish First</option>
               <option value="symbol">Symbol A-Z</option>
             </select>
           </div>
-          <div class="text-xs text-gray-500 ml-4">Click column headers to filter by that timeframe</div>
+          <span class="text-xs text-gray-500 flex-shrink-0">Click column headers to filter by that timeframe</span>
         </div>
       </div>
       
       <!-- Algo Signals Sub-Tabs Panel -->
-      <div id="algoCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-4">
-          <span class="text-sm font-medium text-purple-400">🤖 Algo Filter:</span>
-          <div class="flex gap-1">
-            <button onclick="setAlgoFilter('all')" id="algoFilterAll" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-purple-600 text-white">All Algos</button>
-            <button onclick="setAlgoFilter('algo1')" id="algoFilterAlgo1" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 1</button>
-            <button onclick="setAlgoFilter('algo2')" id="algoFilterAlgo2" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 2</button>
-            <button onclick="setAlgoFilter('algo3')" id="algoFilterAlgo3" class="algo-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 3</button>
+      <div id="algoCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-purple-400 flex-shrink-0">🤖 Algo Filter:</span>
+          <div class="flex gap-1 flex-shrink-0">
+            <button onclick="setAlgoFilter('all')" id="algoFilterAll" class="algo-sub-tab px-3 py-1 text-xs rounded bg-purple-600 text-white">All Algos</button>
+            <button onclick="setAlgoFilter('algo1')" id="algoFilterAlgo1" class="algo-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 1</button>
+            <button onclick="setAlgoFilter('algo2')" id="algoFilterAlgo2" class="algo-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 2</button>
+            <button onclick="setAlgoFilter('algo3')" id="algoFilterAlgo3" class="algo-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">Algo 3</button>
           </div>
-          <div class="flex items-center gap-2 ml-4">
-            <span class="text-xs text-gray-400">Direction:</span>
-            <select id="algoDirection" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Direction:</span>
+            <select id="algoDirection" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="all">All</option>
               <option value="buy">Buy Only</option>
               <option value="sell">Sell Only</option>
             </select>
           </div>
-          <div class="flex items-center gap-2 ml-4">
-            <span class="text-xs text-gray-400">Show:</span>
-            <select id="algoTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Show:</span>
+            <select id="algoTimeRange" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="active">Currently Active</option>
               <option value="1h">Last 1 Hour</option>
               <option value="4h">Last 4 Hours</option>
@@ -363,17 +400,17 @@
       </div>
       
       <!-- OB/OS Sub-Tabs Panel -->
-      <div id="obosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-4">
-          <span class="text-sm font-medium text-yellow-400">🔴🟢 OB/OS Filter:</span>
-          <div class="flex gap-1">
-            <button onclick="setObosFilter('all')" id="obosFilterAll" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-yellow-600 text-white">All</button>
-            <button onclick="setObosFilter('overbought')" id="obosFilterOverbought" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Overbought</button>
-            <button onclick="setObosFilter('oversold')" id="obosFilterOversold" class="obos-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Oversold</button>
+      <div id="obosCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-yellow-400 flex-shrink-0">🔴🟢 OB/OS Filter:</span>
+          <div class="flex gap-1 flex-shrink-0">
+            <button onclick="setObosFilter('all')" id="obosFilterAll" class="obos-sub-tab px-3 py-1 text-xs rounded bg-yellow-600 text-white">All</button>
+            <button onclick="setObosFilter('overbought')" id="obosFilterOverbought" class="obos-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Overbought</button>
+            <button onclick="setObosFilter('oversold')" id="obosFilterOversold" class="obos-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Oversold</button>
           </div>
-          <div class="flex items-center gap-2 ml-4">
-            <span class="text-xs text-gray-400">Show:</span>
-            <select id="obosTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Show:</span>
+            <select id="obosTimeRange" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="active">Currently Active</option>
               <option value="1h">Last 1 Hour</option>
               <option value="4h">Last 4 Hours</option>
@@ -384,17 +421,17 @@
       </div>
       
       <!-- Zone Rejections Sub-Tabs Panel -->
-      <div id="zonesCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-4">
-          <span class="text-sm font-medium text-blue-400">🎯 Zone Filter:</span>
-          <div class="flex gap-1">
-            <button onclick="setZoneFilter('all')" id="zoneFilterAll" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-blue-600 text-white">All</button>
-            <button onclick="setZoneFilter('demand')" id="zoneFilterDemand" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Demand</button>
-            <button onclick="setZoneFilter('supply')" id="zoneFilterSupply" class="zone-sub-tab px-3 py-1.5 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Supply</button>
+      <div id="zonesCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-blue-400 flex-shrink-0">🎯 Zone Filter:</span>
+          <div class="flex gap-1 flex-shrink-0">
+            <button onclick="setZoneFilter('all')" id="zoneFilterAll" class="zone-sub-tab px-3 py-1 text-xs rounded bg-blue-600 text-white">All</button>
+            <button onclick="setZoneFilter('demand')" id="zoneFilterDemand" class="zone-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🟢 Demand</button>
+            <button onclick="setZoneFilter('supply')" id="zoneFilterSupply" class="zone-sub-tab px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600">🔴 Supply</button>
           </div>
-          <div class="flex items-center gap-2 ml-4">
-            <span class="text-xs text-gray-400">Show:</span>
-            <select id="zonesTimeRange" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="renderTable()">
+          <div class="criteria-item">
+            <span class="criteria-label">Show:</span>
+            <select id="zonesTimeRange" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="renderTable()">
               <option value="active">Currently Active</option>
               <option value="1h">Last 1 Hour</option>
               <option value="4h">Last 4 Hours</option>
@@ -404,13 +441,13 @@
         </div>
       </div>
       
-      <!-- Longs Criteria Panel -->
-      <div id="longsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-6 flex-wrap">
-          <span class="text-sm font-medium text-green-400">📈 Long Setup Criteria:</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Zone:</span>
-            <select id="longZoneTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+      <!-- Longs Criteria Panel - ALL ON ONE ROW -->
+      <div id="longsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-green-400 flex-shrink-0">📈 Long Setup Criteria:</span>
+          <div class="criteria-item">
+            <span class="criteria-label">Zone:</span>
+            <select id="longZoneTF" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none">None Required</option>
               <option value="1m">Demand 1m+</option>
               <option value="15m">Demand 15m+</option>
@@ -420,9 +457,9 @@
               <option value="1d">Demand 1D+</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">MSS/BOS:</span>
-            <select id="longMssBos" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">MSS/BOS:</span>
+            <select id="longMssBos" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none">None Required</option>
               <option value="bias" selected>Bullish Bias</option>
               <option value="1m">Bullish 1m</option>
@@ -436,22 +473,22 @@
               <option value="1d">Bullish 1D</option>
               <option value="1w">Bullish 1W</option>
             </select>
-            <select id="longMssBosType" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+            <select id="longMssBosType" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="any" selected>MSS or BOS</option>
               <option value="mss">MSS Only</option>
               <option value="bos">BOS Only</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">OB/OS:</span>
-            <select id="longObOs" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">OB/OS:</span>
+            <select id="longObOs" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="oversold">Oversold (Buy Signal)</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Caution:</span>
-            <select id="longCaution" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">Caution:</span>
+            <select id="longCaution" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="1">Min 1 TF</option>
               <option value="2">Min 2 TF</option>
@@ -459,9 +496,9 @@
               <option value="4">Min 4 TF</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Algo:</span>
-            <select id="longAlgo" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">Algo:</span>
+            <select id="longAlgo" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="algo1">Algo 1 Buy</option>
               <option value="algo2">Algo 2 Buy</option>
@@ -472,13 +509,13 @@
         </div>
       </div>
       
-      <!-- Shorts Criteria Panel -->
-      <div id="shortsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-3" style="background: #2d3748;">
-        <div class="flex items-center gap-6 flex-wrap">
-          <span class="text-sm font-medium text-red-400">📉 Short Setup Criteria:</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Zone:</span>
-            <select id="shortZoneTF" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+      <!-- Shorts Criteria Panel - ALL ON ONE ROW -->
+      <div id="shortsCriteriaPanel" class="hidden bg-gray-750 border-b border-gray-700 px-4 py-2" style="background: #2d3748;">
+        <div class="criteria-panel">
+          <span class="text-sm font-medium text-red-400 flex-shrink-0">📉 Short Setup Criteria:</span>
+          <div class="criteria-item">
+            <span class="criteria-label">Zone:</span>
+            <select id="shortZoneTF" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none">None Required</option>
               <option value="1m">Supply 1m+</option>
               <option value="15m">Supply 15m+</option>
@@ -488,9 +525,9 @@
               <option value="1d">Supply 1D+</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">MSS/BOS:</span>
-            <select id="shortMssBos" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">MSS/BOS:</span>
+            <select id="shortMssBos" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none">None Required</option>
               <option value="bias" selected>Bearish Bias</option>
               <option value="1m">Bearish 1m</option>
@@ -504,22 +541,22 @@
               <option value="1d">Bearish 1D</option>
               <option value="1w">Bearish 1W</option>
             </select>
-            <select id="shortMssBosType" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+            <select id="shortMssBosType" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="any" selected>MSS or BOS</option>
               <option value="mss">MSS Only</option>
               <option value="bos">BOS Only</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">OB/OS:</span>
-            <select id="shortObOs" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">OB/OS:</span>
+            <select id="shortObOs" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="overbought">Overbought (Sell Signal)</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Caution:</span>
-            <select id="shortCaution" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">Caution:</span>
+            <select id="shortCaution" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="1">Min 1 TF</option>
               <option value="2">Min 2 TF</option>
@@ -527,9 +564,9 @@
               <option value="4">Min 4 TF</option>
             </select>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">Algo:</span>
-            <select id="shortAlgo" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" onchange="applySetupCriteria()">
+          <div class="criteria-item">
+            <span class="criteria-label">Algo:</span>
+            <select id="shortAlgo" class="bg-gray-700 border border-gray-600 rounded criteria-select" onchange="applySetupCriteria()">
               <option value="none" selected>None Required</option>
               <option value="algo1">Algo 1 Sell</option>
               <option value="algo2">Algo 2 Sell</option>
@@ -601,19 +638,25 @@
     </main>
   </div>
 
-  <!-- Symbol Detail Modal -->
-  <div id="detailModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-2">
-    <div class="bg-gray-800 rounded-lg w-full max-w-7xl h-[95vh] overflow-hidden flex flex-col">
-      <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+  <!-- Symbol Detail Modal - FULLSCREEN -->
+  <div id="detailModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-2">
+    <div class="bg-gray-800 rounded-lg w-[98vw] h-[96vh] overflow-hidden flex flex-col">
+      <div class="p-3 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-3">
           <h2 id="detailSymbol" class="text-xl font-bold">BTCUSDT</h2>
           <span id="detailLinks" class="text-lg"></span>
         </div>
-        <button onclick="closeDetail()" class="text-gray-400 hover:text-white">✕</button>
+        <button onclick="closeDetail()" class="text-gray-400 hover:text-white text-2xl px-2">✕</button>
       </div>
-      <div class="flex-1 overflow-auto p-4">
-        <div id="tvChart" class="h-96 bg-gray-900 rounded-lg mb-4"></div>
-        <div id="detailContent" class="grid grid-cols-2 gap-4"></div>
+      <div class="flex-1 flex overflow-hidden">
+        <!-- Left side: Chart -->
+        <div class="flex-1 p-3 min-w-0">
+          <div id="tvChart" class="h-full bg-gray-900 rounded-lg"></div>
+        </div>
+        <!-- Right side: Data Panels -->
+        <div class="w-[420px] flex-shrink-0 p-3 overflow-y-auto border-l border-gray-700">
+          <div id="detailContent" class="space-y-3"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1310,7 +1353,7 @@
         // Try Binance first, but TradingView widget allows symbol change if not found
         tvSymbol = `BINANCE:${symbol}`;
       }
-      new TradingView.widget({ container_id: 'tvChart', symbol: tvSymbol, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: 500, width: '100%' });
+      new TradingView.widget({ container_id: 'tvChart', symbol: tvSymbol, interval: '60', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#1f2937', enable_publishing: false, hide_side_toolbar: false, allow_symbol_change: true, height: '100%', width: '100%' });
       
       // Build MSS/BOS display with signal types - ONLY show MSS or BOS, never arrows
       let mssbosHtml = '<p class="text-gray-500">No data</p>';
@@ -1325,20 +1368,20 @@
           const label = (signalType === 'MSS' || signalType === 'BOS') ? signalType : (dir ? '-' : '-');
           return `<div class="flex flex-col items-center p-1 rounded ${bgColor}">
             <span class="text-xs text-gray-400">${tf}</span>
-            <span class="${textColor} font-bold text-sm">${label}</span>
+            <span class="${textColor} font-bold text-xs">${label}</span>
           </div>`;
         }).join('');
         const biasColor = item.mssbos.bias === 'BULL' ? 'text-green-400' : item.mssbos.bias === 'BEAR' ? 'text-red-400' : 'text-gray-400';
         mssbosHtml = `<div class="grid grid-cols-10 gap-1">${cells}</div>
-          <p class="text-sm mt-3">Overall Bias: <span class="${biasColor} font-bold">${item.mssbos.bias || 'N/A'}</span> 
+          <p class="text-xs mt-2">Overall Bias: <span class="${biasColor} font-bold">${item.mssbos.bias || 'N/A'}</span> 
           <span class="text-gray-400">(${item.mssbos.bullCount || 0} Bullish, ${item.mssbos.bearCount || 0} Bearish)</span></p>`;
       }
       
       document.getElementById('detailContent').innerHTML = `
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-cyan-400">MSS/BOS Analysis</h3>${mssbosHtml}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-blue-400">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand (price inside zone)</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply (price inside zone)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>${item.supplydemand.demandRejection ? '<p class="text-green-400 text-sm mt-2">✓ Demand Rejection Active</p>' : ''}${item.supplydemand.supplyRejection ? '<p class="text-red-400 text-sm mt-2">✓ Supply Rejection Active</p>' : ''}` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-yellow-400">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution Signals (${item.momentum.cautionCount || 0} active)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500">No data</p>'}</div>
-        <div class="bg-gray-900 rounded-lg p-4"><h3 class="font-medium mb-3 text-purple-400">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20 border border-green-500' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20 border border-red-500' : 'bg-gray-700'}"><span class="text-sm font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo1Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo2Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo3Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div></div>` : '<p class="text-gray-500">No data</p>'}</div>`;
+        <div class="bg-gray-900 rounded-lg p-3"><h3 class="font-medium mb-2 text-cyan-400 text-sm">MSS/BOS Analysis</h3>${mssbosHtml}</div>
+        <div class="bg-gray-900 rounded-lg p-3"><h3 class="font-medium mb-2 text-blue-400 text-sm">Supply/Demand Zones</h3>${item.supplydemand ? `<p class="text-xs text-gray-400 mb-1">Demand (price inside zone)</p><div class="grid grid-cols-10 gap-1 mb-2">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.demandZones?.[tf] ? 'tf-bull' : 'tf-none'}">${tf}</div>`).join('')}</div><p class="text-xs text-gray-400 mb-1">Supply (price inside zone)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell ${item.supplydemand.supplyZones?.[tf] ? 'tf-bear' : 'tf-none'}">${tf}</div>`).join('')}</div>${item.supplydemand.demandRejection ? '<p class="text-green-400 text-xs mt-2">✓ Demand Rejection Active</p>' : ''}${item.supplydemand.supplyRejection ? '<p class="text-red-400 text-xs mt-2">✓ Supply Rejection Active</p>' : ''}` : '<p class="text-gray-500 text-sm">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-3"><h3 class="font-medium mb-2 text-yellow-400 text-sm">Momentum & Caution</h3>${item.momentum ? `<p class="text-xs text-gray-400 mb-1">Caution Signals (${item.momentum.cautionCount || 0} active)</p><div class="grid grid-cols-10 gap-1">${TIMEFRAMES.map(tf => `<div class="tf-cell" style="${item.momentum.cautions?.[tf] ? 'background:rgba(251,191,36,0.3);color:#fbbf24;' : 'background:rgba(75,85,99,0.3);color:#6b7280;'}">${tf}</div>`).join('')}</div>` : '<p class="text-gray-500 text-sm">No data</p>'}</div>
+        <div class="bg-gray-900 rounded-lg p-3"><h3 class="font-medium mb-2 text-purple-400 text-sm">Multi-Algo Signals</h3>${item.multialgo ? `<div class="grid grid-cols-2 gap-2"><div class="text-center p-2 rounded ${item.multialgo.dotsGreen ? 'bg-green-600/20 border border-green-500' : 'bg-gray-700'}"><span class="text-xs font-medium">15M+1H Overbought</span></div><div class="text-center p-2 rounded ${item.multialgo.dotsRed ? 'bg-red-600/20 border border-red-500' : 'bg-gray-700'}"><span class="text-xs font-medium">15M+1H Oversold</span></div><div class="text-center p-2 rounded ${item.multialgo.algo1Buy ? 'bg-green-600/20' : item.multialgo.algo1Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 1: ${item.multialgo.algo1Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo1Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo2Buy ? 'bg-green-600/20' : item.multialgo.algo2Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 2: ${item.multialgo.algo2Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo2Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div><div class="text-center p-2 rounded ${item.multialgo.algo3Buy ? 'bg-green-600/20' : item.multialgo.algo3Sell ? 'bg-red-600/20' : 'bg-gray-700'}"><span class="text-xs">Algo 3: ${item.multialgo.algo3Buy ? '<span class="text-green-400 font-bold">BUY</span>' : item.multialgo.algo3Sell ? '<span class="text-red-400 font-bold">SELL</span>' : '-'}</span></div></div>` : '<p class="text-gray-500 text-sm">No data</p>'}</div>`;
     }
 
     function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
